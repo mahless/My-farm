@@ -17,6 +17,7 @@ export const Livestock = () => {
   const [forecastDays, setForecastDays] = useState(30);
   const [consumedToday, setConsumedToday] = useState(false);
   const [showAddForm, setShowAddForm] = useState(false);
+  const [feedPurpose, setFeedPurpose] = useState<LivestockPurpose | 'all'>('all');
   
   const [newAnimal, setNewAnimal] = useState<{
     type: LivestockType;
@@ -40,7 +41,7 @@ export const Livestock = () => {
   });
 
   const deficit = calculateFeedPurchasesNeeded(forecastDays);
-  const feedAmounts = calculateDynamicFeed(activeFeeds);
+  const feedAmounts = calculateDynamicFeed(activeFeeds, feedPurpose);
 
   const handleConsume = () => {
     consumeDailyFeed(feedAmounts);
@@ -63,11 +64,20 @@ export const Livestock = () => {
     <div className="space-y-6">
       {/* Feed Section - Keep existing logic */}
       <div className="bg-white/40 backdrop-blur-md p-5 rounded-2xl border border-white/20 shadow-xl shadow-green-900/5">
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-xl font-black text-gray-800 flex items-center">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-4 gap-3">
+          <h3 className="text-xl font-black text-gray-800 flex items-center shrink-0">
             <Utensils className="w-6 h-6 ml-2 text-green-600" />
             التغذية الذكية
           </h3>
+          <select 
+            value={feedPurpose}
+            onChange={(e) => setFeedPurpose(e.target.value as any)}
+            className="text-xs font-bold p-2 bg-white/60 border border-green-200 rounded-lg text-green-800 focus:ring-1 focus:ring-green-500 outline-none"
+          >
+            <option value="all">كامل القطيع</option>
+            <option value="milking">قسم الحلاب فقط</option>
+            <option value="fattening">قسم التسمين فقط</option>
+          </select>
         </div>
         <p className="text-sm text-gray-600 mb-4 leading-relaxed font-medium">
           قم بإلغاء تفعيل أي صنف غير متوفر اليوم، وسيقوم المساعد بإعادة حساب الكميات وتوزيعها على الأصناف المتاحة.

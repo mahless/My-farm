@@ -240,18 +240,23 @@ export const useFarmManager = () => {
     }));
   }, []);
 
-  const calculateDynamicFeed = useCallback((activeFeeds = { alfalfa: true, silage: true, concentrate: true, straw: true }) => {
-    const totalDM = calculateDailyFeedNeeds();
-
-    // Relative weights for distribution (based on typical ratios)
-    const weights = {
-      alfalfa: 31,
-      silage: 31,
-      concentrate: 24,
-      straw: 14
+  const calculateDynamicFeed = useCallback((activeFeeds = { alfalfa: true, silage: true, concentrate: true, straw: true }, purposeFilter?: LivestockPurpose | 'all') => {
+    // Relative weights for distribution
+    const milkingWeights = {
+      alfalfa: 35,
+      silage: 30,
+      concentrate: 25,
+      straw: 10
     };
 
-    // Dry Matter percentages
+    const fatteningWeights = {
+      alfalfa: 15,
+      silage: 25,
+      concentrate: 50,
+      straw: 10
+    };
+
+    // Dry Matter percentages for conversion to "fresh weight"
     const dmPercent = {
       alfalfa: 0.20,
       silage: 0.30,
@@ -259,27 +264,38 @@ export const useFarmManager = () => {
       straw: 0.90
     };
 
-    let activeWeightSum = 0;
-    if (activeFeeds.alfalfa) activeWeightSum += weights.alfalfa;
-    if (activeFeeds.silage) activeWeightSum += weights.silage;
-    if (activeFeeds.concentrate) activeWeightSum += weights.concentrate;
-    if (activeFeeds.straw) activeWeightSum += weights.straw;
+    let totalAlfalfa = 0;
+    let totalSilage = 0;
+    let totalConcentrate = 0;
+    let totalStraw = 0;
 
-    if (activeWeightSum === 0) return { alfalfa: 0, silage: 0, concentrate: 0, straw: 0 };
+    state.livestock.forEach(animal => {
+      if (purposeFilter && purposeFilter !== 'all' && animal.purpose !== purposeFilter) return;
 
-    const getFresh = (key: 'alfalfa' | 'silage' | 'concentrate' | 'straw') => {
-      if (!activeFeeds[key]) return 0;
-      const allocatedDM = totalDM * (weights[key] / activeWeightSum);
-      return allocatedDM / dmPercent[key];
-    };
+      const dmNeeded = animal.count * animal.averageWeightKg * animal.dailyDryMatterPercent;
+      const weights = animal.purpose === 'fattening' ? fatteningWeights : milkingWeights;
+
+      let activeWeightSum = 0;
+      if (activeFeeds.alfalfa) activeWeightSum += weights.alfalfa;
+      if (activeFeeds.silage) activeWeightSum += weights.silage;
+      if (activeFeeds.concentrate) activeWeightSum += weights.concentrate;
+      if (activeFeeds.straw) activeWeightSum += weights.straw;
+
+      if (activeWeightSum > 0) {
+        if (activeFeeds.alfalfa) totalAlfalfa += (dmNeeded * (weights.alfalfa / activeWeightSum)) / dmPercent.alfalfa;
+        if (activeFeeds.silage) totalSilage += (dmNeeded * (weights.silage / activeWeightSum)) / dmPercent.silage;
+        if (activeFeeds.concentrate) totalConcentrate += (dmNeeded * (weights.concentrate / activeWeightSum)) / dmPercent.concentrate;
+        if (activeFeeds.straw) totalStraw += (dmNeeded * (weights.straw / activeWeightSum)) / dmPercent.straw;
+      }
+    });
 
     return {
-      alfalfa: getFresh('alfalfa'),
-      silage: getFresh('silage'),
-      concentrate: getFresh('concentrate'),
-      straw: getFresh('straw')
+      alfalfa: totalAlfalfa,
+      silage: totalSilage,
+      concentrate: totalConcentrate,
+      straw: totalStraw
     };
-  }, [calculateDailyFeedNeeds]);
+  }, [state.livestock]);
 
   const consumeDailyFeed = useCallback((amounts: { alfalfa: number, silage: number, concentrate: number, straw: number }) => {
     setState(prev => {
