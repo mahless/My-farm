@@ -6,10 +6,10 @@ import {
   FinancialTransactionType, FinancialCategory, FinancialTransaction,
   LivestockType, LivestockPurpose
 } from '../types';
-import { cropBestPractices } from '../data/bestPractices';
+import { AGRI_REFERENCE } from '../data/agriReference';
 
 const STORAGE_KEY = 'farm_manager_state';
-const CURRENT_VERSION = 11;
+const CURRENT_VERSION = 12;
 
 const initialState: FarmState = {
   version: CURRENT_VERSION,
@@ -17,11 +17,12 @@ const initialState: FarmState = {
     { id: 's1', name: 'Winter 2026', nameAr: 'شتوي 2026', startDate: new Date().toISOString() }
   ],
   currentSeasonId: 's1',
+  pastSeasons: [],
   plantedCrops: [],
   tasks: [],
   livestock: [
-    { id: 'l1', type: 'buffalo', purpose: 'milking', nameAr: 'جاموس مصري', count: 2, averageWeightKg: 500, dailyDryMatterPercent: 0.03 },
-    { id: 'l2', type: 'sheep', purpose: 'fattening', nameAr: 'أغنام (برقي/رحماني)', count: 10, averageWeightKg: 45, dailyDryMatterPercent: 0.035 }
+    { id: 'l1', type: 'buffalo', purpose: 'milking', nameAr: 'جاموس مصري', count: 2, averageWeightKg: 500, dailyDryMatterPercent: 0.025 },
+    { id: 'l2', type: 'sheep', purpose: 'fattening', nameAr: 'أغنام (برقي/رحماني)', count: 10, averageWeightKg: 45, dailyDryMatterPercent: 0.03 }
   ],
   inventory: [
     { id: 'i1', name: 'Green Alfalfa', nameAr: 'برسيم أخضر', type: 'feed', quantity: 0, unit: 'Kg' },
@@ -34,7 +35,7 @@ const initialState: FarmState = {
   ],
   transactions: [],
   financialTransactions: [],
-  cropBestPractices: cropBestPractices
+  cropBestPractices: AGRI_REFERENCE
 };
 
 export const useFarmManager = () => {
@@ -45,7 +46,7 @@ export const useFarmManager = () => {
         const parsed = JSON.parse(saved);
         // Migration for older saves or version mismatch
         if (parsed.version !== CURRENT_VERSION) {
-          parsed.cropBestPractices = cropBestPractices;
+          parsed.cropBestPractices = AGRI_REFERENCE;
           
           // Reset inventory to 0 for version 6 migration
           if (!parsed.version || parsed.version < 6) {
@@ -83,9 +84,13 @@ export const useFarmManager = () => {
             }
           }
           
-          // Version 11 migration: Force reset to ensure new features like categories and missing crops appear
+          // Version 11-12 migration: Force reset or ensure pastSeasons exists
           if (!parsed.version || parsed.version < 11) {
             return initialState;
+          }
+          
+          if (!parsed.pastSeasons) {
+            parsed.pastSeasons = [];
           }
           
           parsed.version = CURRENT_VERSION;
@@ -173,6 +178,10 @@ export const useFarmManager = () => {
       })
     }));
   }, []);
+
+  const handleTaskDelay = useCallback((taskId: string, days: number) => {
+    postponeTask(taskId, days);
+  }, [postponeTask]);
 
   const completeTask = useCallback((taskId: string) => {
     setState(prev => {
@@ -415,7 +424,7 @@ export const useFarmManager = () => {
       nameAr,
       count,
       averageWeightKg: weight,
-      dailyDryMatterPercent: type === 'sheep' || type === 'goat' ? 0.035 : 0.03
+      dailyDryMatterPercent: type === 'sheep' || type === 'goat' ? 0.03 : 0.025
     };
     setState(prev => ({
       ...prev,
@@ -467,13 +476,22 @@ export const useFarmManager = () => {
         notes: notes || `حصاد من مساحة ${crop.area} قيراط`
       };
 
-      // 4. Archive Crop (remove from active list)
+      // 4. Archive Crop in History
+      const archivedCrop = {
+        ...crop,
+        harvestDate: new Date().toISOString(),
+        yieldQuantity
+      };
+      
+      const updatedPastSeasons = [...(prev.pastSeasons || []), archivedCrop];
+      
       return {
         ...prev,
         inventory: newInventory,
         transactions: [newTransaction, ...prev.transactions],
         plantedCrops: prev.plantedCrops.filter(c => c.id !== cropId),
-        tasks: prev.tasks.filter(t => t.plantedCropId !== cropId)
+        tasks: prev.tasks.filter(t => t.plantedCropId !== cropId),
+        pastSeasons: updatedPastSeasons
       };
     });
   }, []);
@@ -528,6 +546,7 @@ export const useFarmManager = () => {
     addInventoryTransaction,
     addFinancialTransaction,
     harvestCrop,
+    handleTaskDelay,
     exportBackup,
     importBackup,
     resetData

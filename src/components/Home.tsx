@@ -1,11 +1,11 @@
 import React from 'react';
 import { useFarmContext } from '../context/FarmContext';
-import { Sprout, Beef, Home as HomeIcon, Calendar, ArrowRight } from 'lucide-react';
+import { Sprout, Beef, Home as HomeIcon, Calendar, ArrowRight, Utensils } from 'lucide-react';
 import { format, parseISO, isToday, isFuture } from 'date-fns';
 import { ar } from 'date-fns/locale';
 
 export const Home = ({ onNavigate }: { onNavigate: (tab: any) => void }) => {
-  const { state } = useFarmContext();
+  const { state, calculateFeedPurchasesNeeded } = useFarmContext();
 
   const activeCrops = state.plantedCrops;
   const totalLivestock = state.livestock.reduce((sum, l) => sum + l.count, 0);
@@ -13,15 +13,36 @@ export const Home = ({ onNavigate }: { onNavigate: (tab: any) => void }) => {
   const pendingTasks = state.tasks.filter(t => t.status === 'pending');
   const todayTasksCount = pendingTasks.filter(t => isToday(parseISO(t.dueDate))).length;
 
+  const feedDeficit30Days = calculateFeedPurchasesNeeded(30);
+
   return (
     <div className="space-y-6 pb-8">
       {/* Welcome Section */}
       <div className="bg-gradient-to-r from-green-600 to-emerald-600 p-6 rounded-3xl text-white shadow-xl shadow-green-900/20 relative overflow-hidden">
         <div className="relative z-10">
           <h2 className="text-2xl font-black mb-1">مرحباً بك في مزرعتك 👋</h2>
-          <p className="text-green-50 opacity-90 text-sm">لديك {todayTasksCount} مهام متبقية لليوم</p>
+          <p className="text-green-50 opacity-90 text-sm">لديك {todayTasksCount} تنبيهات يومية هامة لليوم</p>
         </div>
         <HomeIcon className="absolute -bottom-4 -right-4 w-32 h-32 text-white/10 rotate-12" />
+      </div>
+
+      {/* Feed Status Summary */}
+      <div className="bg-white/40 backdrop-blur-md p-5 rounded-2xl border border-white/20 shadow-lg shadow-amber-900/5">
+        <div className="flex justify-between items-center mb-2">
+          <h3 className="text-lg font-black text-gray-800 flex items-center gap-2">
+            <Utensils className="w-5 h-5 text-amber-600" />
+            حالة العلف (30 يوم)
+          </h3>
+          <span className={`px-2 py-0.5 rounded-full text-[10px] font-black ${feedDeficit30Days > 0 ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'}`}>
+            {feedDeficit30Days > 0 ? 'يوجد عجز' : 'مكتفي'}
+          </span>
+        </div>
+        <div className="flex items-end justify-between">
+          <p className="text-xs text-gray-500 font-bold max-w-[60%]">الصافي المطلوب شراؤه لتغطية احتياج الشهر القادم</p>
+          <p className={`text-xl font-black ${feedDeficit30Days > 0 ? 'text-red-600' : 'text-green-600'}`}>
+            {feedDeficit30Days.toFixed(0)} <span className="text-xs">كجم</span>
+          </p>
+        </div>
       </div>
 
       {/* Main Stats Grid */}

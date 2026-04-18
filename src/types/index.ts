@@ -106,6 +106,7 @@ export interface FarmState {
   version?: number;
   seasons: Season[];
   currentSeasonId: string | null;
+  pastSeasons?: Season[]; // Array for archived seasons/history
   plantedCrops: PlantedCrop[];
   tasks: Task[];
   livestock: Livestock[];

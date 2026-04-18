@@ -7,7 +7,7 @@ import { cn } from '../lib/utils';
 import { HarvestModal } from './HarvestModal';
 
 export const DailyTasks = () => {
-  const { state, completeTask, postponeTask } = useFarmContext();
+  const { state, completeTask, handleTaskDelay } = useFarmContext();
   const [postponeDays, setPostponeDays] = useState<Record<string, number>>({});
   const [harvestingCropId, setHarvestingCropId] = useState<string | null>(null);
 
@@ -20,7 +20,7 @@ export const DailyTasks = () => {
 
   const handlePostpone = (taskId: string) => {
     const days = postponeDays[taskId] || 1;
-    postponeTask(taskId, days);
+    handleTaskDelay(taskId, days);
     setPostponeDays(prev => ({ ...prev, [taskId]: 1 }));
   };
 
