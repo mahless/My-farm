@@ -7,24 +7,37 @@ export const SmartAssistant = () => {
 
   // --- 1. Yield Predictions ---
   // Constants: Expected yield per Qirat (قيراط) in Kg
-  const YIELD_PER_QIRAT = {
-    alfalfa: 1250, // Total season (4-5 cuts)
-    corn: 625,     // Corn Silage
-    wheat: 125,    // Wheat Straw (تبن)
-    beans: 65      // White Beans (dry seeds)
+  const YIELD_PER_QIRAT: Record<string, { yield: number, unitInfo: string, color: string, colorClass: string, bgClass: string, Icon: any }> = {
+    alfalfa: { yield: 1250, unitInfo: 'طوال الموسم', color: 'green', colorClass: 'text-green-700', bgClass: 'border-green-50 text-green-500', Icon: Sprout },
+    corn: { yield: 625, unitInfo: 'عند الحصاد', color: 'amber', colorClass: 'text-amber-700', bgClass: 'border-amber-50 text-amber-500', Icon: Wheat },
+    wheat: { yield: 125, unitInfo: 'عند الحصاد', color: 'orange', colorClass: 'text-orange-700', bgClass: 'border-orange-50 text-orange-500', Icon: Wheat },
+    beans: { yield: 65, unitInfo: 'بذور جافة', color: 'teal', colorClass: 'text-teal-700', bgClass: 'border-teal-50 text-teal-500', Icon: Sprout },
+    potato: { yield: 1500, unitInfo: 'عند الحصاد', color: 'yellow', colorClass: 'text-yellow-700', bgClass: 'border-yellow-50 text-yellow-500', Icon: Sprout }
   };
 
-  let expectedAlfalfa = 0;
-  let expectedSilage = 0;
-  let expectedStraw = 0;
-  let expectedBeans = 0;
+  type YieldData = { nameAr: string, totalArea: number, expectedYield: number, type: string };
 
-  state.plantedCrops.forEach(crop => {
-    if (crop.cropType === 'alfalfa') expectedAlfalfa += crop.area * YIELD_PER_QIRAT.alfalfa;
-    if (crop.cropType === 'corn') expectedSilage += crop.area * YIELD_PER_QIRAT.corn;
-    if (crop.cropType === 'wheat') expectedStraw += crop.area * YIELD_PER_QIRAT.wheat;
-    if (crop.cropType === 'beans') expectedBeans += crop.area * YIELD_PER_QIRAT.beans;
-  });
+  const plantedCropYields = state.plantedCrops.reduce((acc, crop) => {
+    if (!acc[crop.cropType]) {
+      const bp = state.cropBestPractices.find(b => b.cropType === crop.cropType);
+      acc[crop.cropType] = {
+        nameAr: bp?.nameAr || 'محصول',
+        totalArea: 0,
+        expectedYield: 0,
+        type: crop.cropType
+      };
+    }
+    acc[crop.cropType].totalArea += crop.area;
+    const rate = YIELD_PER_QIRAT[crop.cropType]?.yield || 0;
+    acc[crop.cropType].expectedYield += crop.area * rate;
+    return acc;
+  }, {} as Record<string, YieldData>);
+
+  const activeYieldsList = (Object.values(plantedCropYields) as YieldData[]).filter(y => y.expectedYield > 0);
+
+  // Still needed for inventory checks
+  const expectedAlfalfa = plantedCropYields['alfalfa']?.expectedYield || 0;
+  const expectedSilage = plantedCropYields['corn']?.expectedYield || 0;
 
   // --- 2. Daily Consumption ---
   let totalAnimals = 0;
@@ -68,40 +81,29 @@ export const SmartAssistant = () => {
           <h3 className="text-xl font-black text-gray-800">توقعات الإنتاج الربيعي</h3>
         </div>
         
-        <div className="grid grid-cols-2 gap-3">
-          <div className="bg-gray-50/50 p-4 rounded-3xl border border-gray-100 flex flex-col items-center text-center shadow-sm">
-            <div className="bg-white p-2 rounded-xl border border-green-50 shadow-xs mb-3">
-              <Sprout className="w-5 h-5 text-green-500" />
-            </div>
-            <span className="text-[10px] text-gray-400 mb-1 font-bold">البرسيم الأخضر</span>
-            <span className="text-lg font-black text-green-700">{formatKg(expectedAlfalfa)}</span>
-            <span className="text-[9px] text-gray-400 mt-1 italic">طوال الموسم</span>
+        {activeYieldsList.length === 0 ? (
+          <div className="bg-gray-50/80 p-6 rounded-3xl border border-dashed border-gray-200 text-center">
+            <Sprout className="w-8 h-8 text-gray-400 mx-auto mb-2 opacity-50" />
+            <p className="text-gray-500 font-bold text-sm">لا توجد محاصيل مزروعة حالياً لعرض التوقعات</p>
           </div>
-          <div className="bg-gray-50/50 p-4 rounded-3xl border border-gray-100 flex flex-col items-center text-center shadow-sm">
-            <div className="bg-white p-2 rounded-xl border border-amber-50 shadow-xs mb-3">
-              <Wheat className="w-5 h-5 text-amber-500" />
-            </div>
-            <span className="text-[10px] text-gray-400 mb-1 font-bold">سيلاج الذرة</span>
-            <span className="text-lg font-black text-amber-700">{formatKg(expectedSilage)}</span>
-            <span className="text-[9px] text-gray-400 mt-1 italic">عند الحصاد</span>
+        ) : (
+          <div className="grid grid-cols-2 gap-3">
+            {activeYieldsList.map((yieldData, idx) => {
+              const meta = YIELD_PER_QIRAT[yieldData.type] || YIELD_PER_QIRAT.alfalfa;
+              const Icon = meta.Icon;
+              return (
+                <div key={idx} className="bg-gray-50/50 p-4 rounded-3xl border border-gray-100 flex flex-col items-center text-center shadow-sm">
+                  <div className={`bg-white p-2 rounded-xl border shadow-xs mb-3 ${meta.bgClass}`}>
+                    <Icon className="w-5 h-5" />
+                  </div>
+                  <span className="text-[10px] text-gray-400 mb-1 font-bold">{yieldData.nameAr}</span>
+                  <span className={`text-lg font-black ${meta.colorClass}`}>{formatKg(yieldData.expectedYield)}</span>
+                  <span className="text-[9px] text-gray-400 mt-1 italic">{meta.unitInfo}</span>
+                </div>
+              );
+            })}
           </div>
-          <div className="bg-gray-50/50 p-4 rounded-3xl border border-gray-100 flex flex-col items-center text-center shadow-sm">
-            <div className="bg-white p-2 rounded-xl border border-orange-50 shadow-xs mb-3">
-              <Wheat className="w-5 h-5 text-orange-500" />
-            </div>
-            <span className="text-[10px] text-gray-400 mb-1 font-bold">تبن القمح</span>
-            <span className="text-lg font-black text-orange-700">{formatKg(expectedStraw)}</span>
-            <span className="text-[9px] text-gray-400 mt-1 italic">عند الحصاد</span>
-          </div>
-          <div className="bg-gray-50/50 p-4 rounded-3xl border border-gray-100 flex flex-col items-center text-center shadow-sm">
-            <div className="bg-white p-2 rounded-xl border border-teal-50 shadow-xs mb-3">
-              <Sprout className="w-5 h-5 text-teal-500" />
-            </div>
-            <span className="text-[10px] text-gray-400 mb-1 font-bold">بذور الفاصوليا</span>
-            <span className="text-lg font-black text-teal-700">{formatKg(expectedBeans)}</span>
-            <span className="text-[9px] text-gray-400 mt-1 italic">بذور جافة</span>
-          </div>
-        </div>
+        )}
       </section>
 
       <div className="h-px bg-emerald-300 mx-2" />
