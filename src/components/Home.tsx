@@ -1,19 +1,17 @@
 import React from 'react';
 import { useFarmContext } from '../context/FarmContext';
-import { Sprout, Beef, Home as HomeIcon, Calendar, ArrowRight, Utensils } from 'lucide-react';
+import { Sprout, Beef, Home as HomeIcon, Calendar, ArrowRight } from 'lucide-react';
 import { format, parseISO, isToday, isFuture } from 'date-fns';
 import { ar } from 'date-fns/locale';
 
 export const Home = ({ onNavigate }: { onNavigate: (tab: any) => void }) => {
-  const { state, calculateFeedPurchasesNeeded } = useFarmContext();
+  const { state } = useFarmContext();
 
   const activeCrops = state.plantedCrops;
   const totalLivestock = state.livestock.reduce((sum, l) => sum + l.count, 0);
   
   const pendingTasks = state.tasks.filter(t => t.status === 'pending');
   const todayTasksCount = pendingTasks.filter(t => isToday(parseISO(t.dueDate))).length;
-
-  const feedDeficit30Days = calculateFeedPurchasesNeeded(30);
 
   return (
     <div className="space-y-4 pb-8">
@@ -24,27 +22,6 @@ export const Home = ({ onNavigate }: { onNavigate: (tab: any) => void }) => {
           <p className="text-green-50 opacity-90 text-sm">لديك {todayTasksCount} تنبيهات يومية هامة لليوم</p>
         </div>
         <HomeIcon className="absolute -bottom-4 -right-4 w-32 h-32 text-white/10 rotate-12" />
-      </div>
-
-      <div className="h-px bg-emerald-300 mx-2" />
-
-      {/* Feed Status Summary */}
-      <div className="py-2">
-        <div className="flex justify-between items-center mb-1 px-1">
-          <h3 className="text-base font-black text-gray-800 flex items-center gap-2">
-            <Utensils className="w-4 h-4 text-amber-600" />
-            حالة العلف (30 يوم)
-          </h3>
-          <span className={`px-2 py-0.5 rounded-full text-[10px] font-black ${feedDeficit30Days > 0 ? 'bg-red-50 text-red-600' : 'bg-green-50 text-green-600'}`}>
-            {feedDeficit30Days > 0 ? 'يوجد عجز' : 'مكتفي'}
-          </span>
-        </div>
-        <div className="flex items-end justify-between px-1">
-          <p className="text-[10px] text-gray-400 font-bold max-w-[65%] leading-tight">الصافي المطلوب شراؤه لتغطية احتياج الشهر القادم</p>
-          <p className={`text-xl font-black ${feedDeficit30Days > 0 ? 'text-red-500' : 'text-green-500'}`}>
-            {feedDeficit30Days.toFixed(0)} <span className="text-[10px] font-normal">كجم</span>
-          </p>
-        </div>
       </div>
 
       <div className="h-px bg-emerald-300 mx-2" />
