@@ -4,12 +4,12 @@ import {
   FarmState, PlantedCrop, Task, Livestock, 
   InventoryItem, InventoryTransaction, Season, CropType,
   FinancialTransactionType, FinancialCategory, FinancialTransaction,
-  LivestockType, LivestockPurpose
+  LivestockType, LivestockPurpose, FeedingLog
 } from '../types';
 import { AGRI_REFERENCE } from '../data/agriReference';
 
 const STORAGE_KEY = 'farm_manager_state';
-const CURRENT_VERSION = 12;
+const CURRENT_VERSION = 17;
 
 const initialState: FarmState = {
   version: CURRENT_VERSION,
@@ -35,7 +35,8 @@ const initialState: FarmState = {
   ],
   transactions: [],
   financialTransactions: [],
-  cropBestPractices: AGRI_REFERENCE
+  cropBestPractices: AGRI_REFERENCE,
+  feedingLogs: []
 };
 
 export const useFarmManager = () => {
@@ -84,13 +85,18 @@ export const useFarmManager = () => {
             }
           }
           
-          // Version 11-12 migration: Force reset or ensure pastSeasons exists
-          if (!parsed.version || parsed.version < 11) {
+          // Force full reset if version is older than 13 to ensure all new logic (meals, feeding logs) works correctly
+          if (!parsed.version || parsed.version < 13) {
+            console.log("Forcing data reset for Version 13 upgrade");
             return initialState;
           }
           
           if (!parsed.pastSeasons) {
             parsed.pastSeasons = [];
+          }
+          
+          if (!parsed.feedingLogs) {
+            parsed.feedingLogs = [];
           }
           
           parsed.version = CURRENT_VERSION;
@@ -249,28 +255,28 @@ export const useFarmManager = () => {
     }));
   }, []);
 
-  const calculateDynamicFeed = useCallback((activeFeeds = { alfalfa: true, silage: true, concentrate: true, straw: true }, purposeFilter?: LivestockPurpose | 'all') => {
-    // Relative weights for distribution
+  const calculateDynamicFeed = useCallback((activeFeeds = { alfalfa: true, silage: true, concentrate: true, straw: true }, purposeFilter?: LivestockPurpose | 'all', categoryFilter?: 'cattle' | 'small' | 'all') => {
+    // Relative weights for distribution based on Egyptian ARC standard formulas
     const milkingWeights = {
-      alfalfa: 35,
-      silage: 30,
-      concentrate: 25,
-      straw: 10
+      alfalfa: 40,      // برسيم أخضر للحلاب: نسبة كبيرة من العليقة المالئة (طاقة وبروتين منخفض التكلفة)
+      silage: 20,       // سيلاج ذرة (طاقة عالية لدعم الحليب)
+      concentrate: 30,  // علف مركز حلاب (16-18% بروتين)
+      straw: 10         // تبن قمح (لضبط الهضم والالياف)
     };
 
     const fatteningWeights = {
-      alfalfa: 15,
-      silage: 25,
-      concentrate: 50,
-      straw: 10
+      alfalfa: 10,      // نسبة مخفضة جدا في التسمين (لفتح الشهية)
+      silage: 30,       // طاقة جيدة ورخيصة
+      concentrate: 55,  // علف تسمين (14-16% بروتين) هو الأساس بنسبة لا تقل عن 50-60%
+      straw: 5          // تبن قمح بنسبة قليلة جداً
     };
 
     // Dry Matter percentages for conversion to "fresh weight"
     const dmPercent = {
-      alfalfa: 0.20,
-      silage: 0.30,
-      concentrate: 0.90,
-      straw: 0.90
+      alfalfa: 0.18,    // البرسيم المصري نسبة الرطوبة به عالية جدا (حوالي 82% ماء)
+      silage: 0.32,     // سيلاج الذرة ممتاز عند 32% مادة جافة
+      concentrate: 0.90,// الأعلاف المركزة جافة عادة 90%
+      straw: 0.90       // التبن جاف 90%
     };
 
     let totalAlfalfa = 0;
@@ -279,7 +285,15 @@ export const useFarmManager = () => {
     let totalStraw = 0;
 
     state.livestock.forEach(animal => {
+      // 1. Purpose Filter
       if (purposeFilter && purposeFilter !== 'all' && animal.purpose !== purposeFilter) return;
+
+      // 2. Category Filter
+      if (categoryFilter && categoryFilter !== 'all') {
+        const isCattle = animal.type === 'buffalo' || animal.type === 'cow';
+        if (categoryFilter === 'cattle' && !isCattle) return;
+        if (categoryFilter === 'small' && isCattle) return;
+      }
 
       const dmNeeded = animal.count * animal.averageWeightKg * animal.dailyDryMatterPercent;
       const weights = animal.purpose === 'fattening' ? fatteningWeights : milkingWeights;
@@ -306,8 +320,25 @@ export const useFarmManager = () => {
     };
   }, [state.livestock]);
 
-  const consumeDailyFeed = useCallback((amounts: { alfalfa: number, silage: number, concentrate: number, straw: number }) => {
+  const consumeDailyFeed = useCallback((amounts: { alfalfa: number, silage: number, concentrate: number, straw: number }, metadata?: { category: 'cattle' | 'small' | 'all', purpose: LivestockPurpose | 'all', timeSlot: 'morning' | 'evening' }) => {
+    let success = true;
     setState(prev => {
+      // Check if any required inventory is zero or insufficient
+      const i1 = prev.inventory.find(i => i.id === 'i1')?.quantity || 0;
+      const i2 = prev.inventory.find(i => i.id === 'i2')?.quantity || 0;
+      const i3 = prev.inventory.find(i => i.id === 'i3')?.quantity || 0;
+      const i4 = prev.inventory.find(i => i.id === 'i4')?.quantity || 0;
+
+      if (
+        (amounts.alfalfa > 0 && i1 <= 0) ||
+        (amounts.silage > 0 && i2 <= 0) ||
+        (amounts.concentrate > 0 && i3 <= 0) ||
+        (amounts.straw > 0 && i4 <= 0)
+      ) {
+        success = false;
+        return prev;
+      }
+
       const updatedInventory = prev.inventory.map(item => {
         if (item.id === 'i1') return { ...item, quantity: Math.max(0, item.quantity - amounts.alfalfa) };
         if (item.id === 'i2') return { ...item, quantity: Math.max(0, item.quantity - amounts.silage) };
@@ -318,11 +349,18 @@ export const useFarmManager = () => {
 
       const newTransactions: InventoryTransaction[] = [];
       const date = new Date().toISOString();
+      const mealId = `meal_${Date.now()}`;
       
-      if (amounts.alfalfa > 0) newTransactions.push({ id: `tx_a_${Date.now()}`, itemId: 'i1', type: 'out', quantity: amounts.alfalfa, date, notes: 'استهلاك يومي للقطيع' });
-      if (amounts.silage > 0) newTransactions.push({ id: `tx_s_${Date.now()}`, itemId: 'i2', type: 'out', quantity: amounts.silage, date, notes: 'استهلاك يومي للقطيع' });
-      if (amounts.concentrate > 0) newTransactions.push({ id: `tx_c_${Date.now()}`, itemId: 'i3', type: 'out', quantity: amounts.concentrate, date, notes: 'استهلاك يومي للقطيع' });
-      if (amounts.straw > 0) newTransactions.push({ id: `tx_w_${Date.now()}`, itemId: 'i4', type: 'out', quantity: amounts.straw, date, notes: 'استهلاك يومي للقطيع' });
+      const breakdown = [];
+      if (amounts.alfalfa > 0) breakdown.push({ nameAr: 'برسيم أخضر', quantity: amounts.alfalfa });
+      if (amounts.silage > 0) breakdown.push({ nameAr: 'سيلاج ذرة', quantity: amounts.silage });
+      if (amounts.concentrate > 0) breakdown.push({ nameAr: 'علف مركز', quantity: amounts.concentrate });
+      if (amounts.straw > 0) breakdown.push({ nameAr: 'تبن قمح', quantity: amounts.straw });
+
+      if (amounts.alfalfa > 0) newTransactions.push({ id: `tx_a_${mealId}`, itemId: 'i1', type: 'out', quantity: Math.min(amounts.alfalfa, i1), date, notes: 'استهلاك يومي للقطيع', mealMetadata: metadata ? { ...metadata, breakdown } : undefined });
+      if (amounts.silage > 0) newTransactions.push({ id: `tx_s_${mealId}`, itemId: 'i2', type: 'out', quantity: Math.min(amounts.silage, i2), date, notes: 'استهلاك يومي للقطيع', mealMetadata: metadata ? { ...metadata, breakdown } : undefined });
+      if (amounts.concentrate > 0) newTransactions.push({ id: `tx_c_${mealId}`, itemId: 'i3', type: 'out', quantity: Math.min(amounts.concentrate, i3), date, notes: 'استهلاك يومي للقطيع', mealMetadata: metadata ? { ...metadata, breakdown } : undefined });
+      if (amounts.straw > 0) newTransactions.push({ id: `tx_w_${mealId}`, itemId: 'i4', type: 'out', quantity: Math.min(amounts.straw, i4), date, notes: 'استهلاك يومي للقطيع', mealMetadata: metadata ? { ...metadata, breakdown } : undefined });
 
       return {
         ...prev,
@@ -330,6 +368,7 @@ export const useFarmManager = () => {
         transactions: [...newTransactions, ...prev.transactions]
       };
     });
+    return success;
   }, []);
 
   const updateLivestockParams = useCallback((id: string, averageWeightKg: number, dailyDryMatterPercent: number) => {
@@ -528,6 +567,61 @@ export const useFarmManager = () => {
     localStorage.removeItem(STORAGE_KEY);
   }, []);
 
+  const toggleFeedingLog = useCallback((category: 'cattle' | 'small', timeSlot: 'morning' | 'evening') => {
+    setState(prev => {
+      const today = new Date().toISOString().split('T')[0];
+      const logs = prev.feedingLogs || [];
+      const existingIndex = logs.findIndex(l => l.date === today && l.timeSlot === timeSlot && l.animalCategory === category);
+      
+      let newLogs = [...logs];
+      if (existingIndex > -1) {
+        newLogs.splice(existingIndex, 1);
+      } else {
+        newLogs.push({
+          id: `feed_${Date.now()}`,
+          date: today,
+          timeSlot,
+          animalCategory: category
+        });
+      }
+      
+      return { ...prev, feedingLogs: newLogs };
+    });
+  }, []);
+
+  const startVetProgram = useCallback((category: 'cattle' | 'small' | 'all') => {
+    import('../data/vetReference').then(({ VET_REFERENCE }) => {
+      setState(prev => {
+        const newTasks: Task[] = [];
+        const baseDate = new Date();
+        
+        VET_REFERENCE.forEach(vetMilestone => {
+          if (vetMilestone.animalCategory === 'all' || vetMilestone.animalCategory === category) {
+            newTasks.push({
+              id: `v_${Date.now()}_${vetMilestone.id}`,
+              livestockCategory: category,
+              title: vetMilestone.title,
+              titleAr: vetMilestone.titleAr,
+              dueDate: addDays(baseDate, vetMilestone.daysAfterTrigger).toISOString(),
+              type: vetMilestone.type,
+              status: 'pending'
+            });
+          }
+        });
+
+        // Filter out existing pending tasks of the same title & category to avoid duplicates
+        const updatedTasks = prev.tasks.filter(t => 
+          !(t.status === 'pending' && t.livestockCategory === category && VET_REFERENCE.some(v => v.titleAr === t.titleAr))
+        );
+
+        return {
+          ...prev,
+          tasks: [...updatedTasks, ...newTasks]
+        };
+      });
+    });
+  }, []);
+
   return {
     state,
     plantCrop,
@@ -549,7 +643,9 @@ export const useFarmManager = () => {
     handleTaskDelay,
     exportBackup,
     importBackup,
-    resetData
+    resetData,
+    toggleFeedingLog,
+    startVetProgram
   };
 };
 

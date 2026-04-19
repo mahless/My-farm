@@ -1,7 +1,7 @@
 export type CropType = 'wheat' | 'corn' | 'potato' | 'alfalfa' | 'beans';
 export type LivestockType = 'buffalo' | 'cow' | 'sheep' | 'goat';
 export type LivestockPurpose = 'milking' | 'fattening';
-export type TaskType = 'irrigation' | 'fertilization' | 'harvest' | 'other';
+export type TaskType = 'irrigation' | 'fertilization' | 'harvest' | 'vaccination' | 'other';
 export type TaskStatus = 'pending' | 'completed' | 'postponed';
 export type InventoryItemType = 'feed' | 'crop' | 'fertilizer' | 'other';
 export type TransactionType = 'in' | 'out' | 'set';
@@ -55,6 +55,7 @@ export interface PlantedCrop {
 export interface Task {
   id: string;
   plantedCropId?: string;
+  livestockCategory?: 'cattle' | 'small' | 'all';
   title: string;
   titleAr: string;
   dueDate: string; // ISO String
@@ -92,6 +93,12 @@ export interface InventoryTransaction {
   quantity: number;
   date: string; // ISO String
   notes?: string;
+  mealMetadata?: {
+    category: 'cattle' | 'small' | 'all';
+    purpose: LivestockPurpose | 'all';
+    timeSlot: 'morning' | 'evening';
+    breakdown: { nameAr: string; quantity: number }[];
+  };
 }
 
 export interface Season {
@@ -100,6 +107,13 @@ export interface Season {
   nameAr: string;
   startDate: string; // ISO String
   endDate?: string; // ISO String
+}
+
+export interface FeedingLog {
+  id: string;
+  date: string; // ISO String (Date only part usually)
+  timeSlot: 'morning' | 'evening';
+  animalCategory: 'cattle' | 'small' | 'all';
 }
 
 export interface FarmState {
@@ -114,4 +128,6 @@ export interface FarmState {
   transactions: InventoryTransaction[];
   financialTransactions: FinancialTransaction[];
   cropBestPractices: CropBestPractice[];
+  vetMilestones?: any[]; // Keep any for now or import VetMilestone
+  feedingLogs?: FeedingLog[];
 }

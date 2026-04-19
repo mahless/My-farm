@@ -60,102 +60,115 @@ export const SmartAssistant = () => {
   };
 
   return (
-    <div className="space-y-6 pb-6 animate-in fade-in duration-500">
+    <div className="space-y-10 pb-6 animate-in fade-in duration-500">
       {/* Yield Predictions */}
-      <div className="bg-white/60 backdrop-blur-md rounded-2xl p-4 shadow-sm border border-white/40">
-        <h3 className="font-bold text-gray-800 flex items-center gap-2 mb-4">
+      <section>
+        <div className="flex items-center gap-2 mb-4 px-1">
           <TrendingUp className="w-5 h-5 text-green-600" />
-          توقعات الإنتاج من الزراعة الحالية
-        </h3>
+          <h3 className="text-xl font-black text-gray-800">توقعات الإنتاج الربيعي</h3>
+        </div>
+        
         <div className="grid grid-cols-2 gap-3">
-          <div className="bg-white p-3 rounded-xl border border-green-100 shadow-md shadow-green-900/5 flex flex-col items-center text-center">
-            <Sprout className="w-6 h-6 text-green-500 mb-2" />
-            <span className="text-xs text-gray-500 mb-1">إجمالي البرسيم المتوقع</span>
-            <span className="font-black text-green-700">{formatKg(expectedAlfalfa)}</span>
-            <span className="text-[9px] text-gray-400 mt-1">طوال الموسم (4-5 حشات)</span>
+          <div className="bg-gray-50/50 p-4 rounded-3xl border border-gray-100 flex flex-col items-center text-center shadow-sm">
+            <div className="bg-white p-2 rounded-xl border border-green-50 shadow-xs mb-3">
+              <Sprout className="w-5 h-5 text-green-500" />
+            </div>
+            <span className="text-[10px] text-gray-400 mb-1 font-bold">البرسيم الأخضر</span>
+            <span className="text-lg font-black text-green-700">{formatKg(expectedAlfalfa)}</span>
+            <span className="text-[9px] text-gray-400 mt-1 italic">طوال الموسم</span>
           </div>
-          <div className="bg-white p-3 rounded-xl border border-amber-100 shadow-md shadow-amber-900/5 flex flex-col items-center text-center">
-            <Wheat className="w-6 h-6 text-amber-500 mb-2" />
-            <span className="text-xs text-gray-500 mb-1">سيلاج الذرة المتوقع</span>
-            <span className="font-black text-amber-700">{formatKg(expectedSilage)}</span>
-            <span className="text-[9px] text-gray-400 mt-1">عند الحصاد للسيلاج</span>
+          <div className="bg-gray-50/50 p-4 rounded-3xl border border-gray-100 flex flex-col items-center text-center shadow-sm">
+            <div className="bg-white p-2 rounded-xl border border-amber-50 shadow-xs mb-3">
+              <Wheat className="w-5 h-5 text-amber-500" />
+            </div>
+            <span className="text-[10px] text-gray-400 mb-1 font-bold">سيلاج الذرة</span>
+            <span className="text-lg font-black text-amber-700">{formatKg(expectedSilage)}</span>
+            <span className="text-[9px] text-gray-400 mt-1 italic">عند الحصاد</span>
           </div>
-          <div className="bg-white p-3 rounded-xl border border-orange-100 shadow-md shadow-orange-900/5 flex flex-col items-center text-center">
-            <Wheat className="w-6 h-6 text-orange-500 mb-2" />
-            <span className="text-xs text-gray-500 mb-1">تبن القمح المتوقع</span>
-            <span className="font-black text-orange-700">{formatKg(expectedStraw)}</span>
-            <span className="text-[9px] text-gray-400 mt-1">عند الحصاد</span>
+          <div className="bg-gray-50/50 p-4 rounded-3xl border border-gray-100 flex flex-col items-center text-center shadow-sm">
+            <div className="bg-white p-2 rounded-xl border border-orange-50 shadow-xs mb-3">
+              <Wheat className="w-5 h-5 text-orange-500" />
+            </div>
+            <span className="text-[10px] text-gray-400 mb-1 font-bold">تبن القمح</span>
+            <span className="text-lg font-black text-orange-700">{formatKg(expectedStraw)}</span>
+            <span className="text-[9px] text-gray-400 mt-1 italic">عند الحصاد</span>
           </div>
-          <div className="bg-white p-3 rounded-xl border border-teal-100 shadow-md shadow-teal-900/5 flex flex-col items-center text-center">
-            <Sprout className="w-6 h-6 text-teal-500 mb-2" />
-            <span className="text-xs text-gray-500 mb-1">الفاصوليا المتوقعة</span>
-            <span className="font-black text-teal-700">{formatKg(expectedBeans)}</span>
-            <span className="text-[9px] text-gray-400 mt-1">بذور جافة</span>
+          <div className="bg-gray-50/50 p-4 rounded-3xl border border-gray-100 flex flex-col items-center text-center shadow-sm">
+            <div className="bg-white p-2 rounded-xl border border-teal-50 shadow-xs mb-3">
+              <Sprout className="w-5 h-5 text-teal-500" />
+            </div>
+            <span className="text-[10px] text-gray-400 mb-1 font-bold">بذور الفاصوليا</span>
+            <span className="text-lg font-black text-teal-700">{formatKg(expectedBeans)}</span>
+            <span className="text-[9px] text-gray-400 mt-1 italic">بذور جافة</span>
           </div>
         </div>
-      </div>
+      </section>
+
+      <div className="h-px bg-emerald-300 mx-2" />
 
       {/* Inventory Radar */}
       {totalAnimals > 0 && (
-        <div className="bg-white/60 backdrop-blur-md rounded-2xl p-4 shadow-xl shadow-indigo-900/5 border border-white/40">
-          <h3 className="font-bold text-gray-800 flex items-center gap-2 mb-4">
+        <section className="pt-6">
+          <div className="flex items-center gap-2 mb-4 px-1">
             <Clock className="w-5 h-5 text-purple-600" />
-            مؤشر نفاذ المخزون
-          </h3>
+            <h3 className="text-xl font-black text-gray-800">مؤشر نفاذ المخزون</h3>
+          </div>
           
-          <div className="space-y-3">
+          <div className="space-y-2">
             {[
               { name: isWinterStrategy ? 'البرسيم الأخضر' : 'سيلاج الذرة', days: isWinterStrategy ? daysAlfalfa : daysSilage, qty: isWinterStrategy ? alfalfaQty : silageQty },
-              { name: 'التبن', days: daysStraw, qty: strawQty },
+              { name: 'التبن القمح', days: daysStraw, qty: strawQty },
               { name: 'العلف المركز', days: daysConcentrate, qty: concentrateQty }
             ].map((item, idx) => (
-              <div key={idx} className="flex items-center justify-between bg-white p-3 rounded-xl border border-gray-100 shadow-md shadow-gray-900/5">
+              <div key={idx} className="flex items-center justify-between bg-gray-50/50 p-4 rounded-2xl border border-gray-100 shadow-sm">
                 <div>
-                  <p className="font-bold text-gray-800 text-sm">{item.name}</p>
-                  <p className="text-xs text-gray-500">المتاح: {formatKg(item.qty)}</p>
+                  <p className="font-black text-gray-800 text-sm">{item.name}</p>
+                  <p className="text-[10px] text-gray-400 font-bold">المتاح فعلياً: {formatKg(item.qty)}</p>
                 </div>
-                <div className={`px-3 py-1 rounded-full border text-xs font-bold ${getStatusColor(item.days)}`}>
-                  {item.days > 0 ? `يكفي ${item.days} يوم` : 'نفذ الرصيد'}
+                <div className={`px-4 py-1.5 rounded-full border text-[10px] font-black ${getStatusColor(item.days)}`}>
+                  {item.days > 0 ? `يكفي ${item.days} يوم` : 'نفذ الرصيد!'}
                 </div>
               </div>
             ))}
           </div>
-        </div>
+        </section>
       )}
 
+      <div className="h-px bg-emerald-300 mx-2" />
+
       {/* Recommendations */}
-      <div className="bg-white/60 backdrop-blur-md rounded-2xl p-4 shadow-xl shadow-indigo-900/5 border border-white/40">
-        <h3 className="font-bold text-gray-800 flex items-center gap-2 mb-4">
+      <section className="pt-6 px-1">
+        <div className="flex items-center gap-2 mb-4">
           <Info className="w-5 h-5 text-teal-600" />
-          توصيات وبدائل ذكية
-        </h3>
+          <h3 className="text-xl font-black text-gray-800">توصيات وبدائل</h3>
+        </div>
         <div className="space-y-3">
           {(!isWinterStrategy && silageQty === 0 && expectedSilage === 0) && (
-            <div className="flex gap-3 bg-red-50 p-3 rounded-xl border border-red-100">
+            <div className="flex gap-3 bg-red-50/50 p-4 rounded-2xl border border-red-100/50">
               <AlertTriangle className="w-5 h-5 text-red-500 shrink-0" />
-              <p className="text-sm text-red-900 leading-relaxed">
-                <strong>تحذير:</strong> لا يوجد سيلاج أو برسيم متاح. يجب شراء علف ماليء (دريس أو سيلاج) فوراً لتجنب مشاكل الهضم للقطيع.
+              <p className="text-xs text-red-900 leading-relaxed font-bold">
+                تحذير: لا يوجد رصيد أخضر أو ماليء. يجب توفير بديل (دريس أو قش) فوراً لتجنب مشاكل هضمية للقطيع.
               </p>
             </div>
           )}
           
           {(daysConcentrate < 7 && totalAnimals > 0) && (
-            <div className="flex gap-3 bg-amber-50 p-3 rounded-xl border border-amber-100">
+            <div className="flex gap-3 bg-amber-50/50 p-4 rounded-2xl border border-amber-100/50">
               <AlertTriangle className="w-5 h-5 text-amber-500 shrink-0" />
-              <p className="text-sm text-amber-900 leading-relaxed">
-                <strong>تنبيه:</strong> العلف المركز سينفذ خلال أقل من أسبوع. قم بطلب كمية جديدة للحفاظ على معدلات إنتاج اللبن واللحم.
+              <p className="text-xs text-amber-900 leading-relaxed font-bold">
+                تنبيه: العلف المركز يقترب من النفاذ. قم بطلب الكمية الجديدة لتفادي انخفاض إدرار اللبن.
               </p>
             </div>
           )}
 
-          <div className="flex gap-3 bg-teal-50 p-3 rounded-xl border border-teal-100">
+          <div className="flex gap-3 bg-teal-50/50 p-4 rounded-2xl border border-teal-100/50">
             <CheckCircle className="w-5 h-5 text-teal-500 shrink-0" />
-            <p className="text-sm text-teal-900 leading-relaxed">
-              <strong>بدائل غذائية:</strong> في حال نقص البرسيم الأخضر، يمكنك الاعتماد على سيلاج الذرة كبديل ممتاز للطاقة، مع تعويض نقص البروتين بزيادة نسبة كسب الصويا أو القطن في العلف المركز.
+            <p className="text-xs text-teal-900 leading-relaxed font-bold">
+              في حال نقص البرسيم، اعتمد على السيلاج مع تعويض البروتين بزيادة كسب الصويا في العلطة المركزة.
             </p>
           </div>
         </div>
-      </div>
+      </section>
 
     </div>
   );

@@ -1,13 +1,20 @@
 import React, { useState } from 'react';
 import { useFarmContext } from '../context/FarmContext';
-import { Settings as SettingsIcon, Save, Edit3, Info, Scale } from 'lucide-react';
+import { Settings as SettingsIcon, Save, Edit3, Info, Scale, Trash2 } from 'lucide-react';
 import { CropType } from '../types';
 
 export const Settings = () => {
-  const { state, updateCropMilestone, updateLivestockParams } = useFarmContext();
+  const { state, updateCropMilestone, updateLivestockParams, resetData } = useFarmContext();
   const [selectedCrop, setSelectedCrop] = useState<CropType>('wheat');
   const [targetQuantity, setTargetQuantity] = useState<number>(1000);
   const [showFormulaInfo, setShowFormulaInfo] = useState<boolean>(false);
+
+  const [showConfirmReset, setShowConfirmReset] = useState(false);
+
+  const handleReset = () => {
+    resetData();
+    window.location.reload();
+  };
 
   const activeCropBP = state.cropBestPractices.find(bp => bp.cropType === selectedCrop);
 
@@ -66,6 +73,8 @@ export const Settings = () => {
         </div>
       </div>
 
+      <div className="h-px bg-emerald-300 mx-2" />
+
       {/* Livestock Settings */}
       <div className="bg-white/40 backdrop-blur-md p-5 rounded-2xl border border-white/20 shadow-xl shadow-rose-900/5">
         <h3 className="text-lg font-bold text-gray-800 mb-4 flex items-center">
@@ -102,6 +111,8 @@ export const Settings = () => {
           ))}
         </div>
       </div>
+
+      <div className="h-px bg-emerald-300 mx-2" />
 
       {/* Feed Formula Settings */}
       <div className="bg-white/40 backdrop-blur-md p-5 rounded-2xl border border-white/20 shadow-xl shadow-amber-900/5">
@@ -202,6 +213,39 @@ export const Settings = () => {
             </div>
           </div>
         </div>
+      </div>
+
+      <div className="pt-6 border-t border-red-100">
+        {!showConfirmReset ? (
+          <button
+            onClick={() => setShowConfirmReset(true)}
+            className="w-full flex items-center justify-center gap-2 p-4 bg-red-50 text-red-600 rounded-2xl border-2 border-red-100 font-black hover:bg-red-100 transition-all active:scale-95"
+          >
+            <Trash2 className="w-5 h-5" />
+            حذف كافة البيانات وتصفير التطبيق
+          </button>
+        ) : (
+          <div className="space-y-3 animate-in fade-in zoom-in-95 duration-200">
+            <p className="text-sm font-black text-red-900 text-center">هل أنت متأكد من حذف جميع البيانات؟ لا يمكن التراجع عن هذا الإجراء.</p>
+            <div className="flex gap-2">
+              <button 
+                onClick={handleReset}
+                className="flex-1 py-3 bg-red-600 text-white rounded-xl font-black text-base shadow-lg shadow-red-600/20 active:scale-95"
+              >
+                نعم، امسح كل شيء
+              </button>
+              <button 
+                onClick={() => setShowConfirmReset(false)}
+                className="flex-1 py-3 bg-gray-200 text-gray-700 rounded-xl font-black text-base active:scale-95"
+              >
+                إلغاء
+              </button>
+            </div>
+          </div>
+        )}
+        <p className="text-[10px] text-center text-gray-400 mt-2 font-bold select-none">
+          سيتم مسح كافة سجلات المخزن، الماليات والماشية نهائياً.
+        </p>
       </div>
     </div>
   );

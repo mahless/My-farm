@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useFarmContext } from '../context/FarmContext';
-import { Beef, Plus, Minus, CheckCircle2, Utensils, Trash2, Milk, Tag, Scale } from 'lucide-react';
+import { Beef, Plus, Minus, CheckCircle2, Utensils, Trash2, Milk, Tag, Scale, Syringe } from 'lucide-react';
 import { LivestockType, LivestockPurpose } from '../types';
 
 export const Livestock = () => {
@@ -11,13 +11,19 @@ export const Livestock = () => {
     calculateDynamicFeed, 
     consumeDailyFeed,
     addLivestock,
-    deleteLivestock
+    deleteLivestock,
+    toggleFeedingLog,
+    startVetProgram
   } = useFarmContext();
   
   const [forecastDays, setForecastDays] = useState(30);
   const [consumedToday, setConsumedToday] = useState(false);
+  const [feedError, setFeedError] = useState(false);
+  const [vetAdded, setVetAdded] = useState(false);
   const [showAddForm, setShowAddForm] = useState(false);
   const [feedPurpose, setFeedPurpose] = useState<LivestockPurpose | 'all'>('all');
+  const [feedCategory, setFeedCategory] = useState<'cattle' | 'small' | 'all'>('all');
+  const [mealTimeSlot, setMealTimeSlot] = useState<'morning' | 'evening'>('morning');
   
   const [newAnimal, setNewAnimal] = useState<{
     type: LivestockType;
@@ -41,12 +47,29 @@ export const Livestock = () => {
   });
 
   const deficit = calculateFeedPurchasesNeeded(forecastDays);
-  const feedAmounts = calculateDynamicFeed(activeFeeds, feedPurpose);
+  const feedAmounts = calculateDynamicFeed(activeFeeds, feedPurpose, feedCategory);
+
+  const today = new Date().toISOString().split('T')[0];
+  const morningFed = state.feedingLogs?.some(l => l.date === today && l.timeSlot === 'morning' && l.animalCategory === feedCategory) || false;
+  const eveningFed = state.feedingLogs?.some(l => l.date === today && l.timeSlot === 'evening' && l.animalCategory === feedCategory) || false;
 
   const handleConsume = () => {
-    consumeDailyFeed(feedAmounts);
-    setConsumedToday(true);
-    setTimeout(() => setConsumedToday(false), 3000);
+    const success = consumeDailyFeed(feedAmounts, { category: feedCategory, purpose: feedPurpose, timeSlot: mealTimeSlot });
+    
+    if (success) {
+      // Toggle log if not already marked
+      const isAlreadyFed = mealTimeSlot === 'morning' ? morningFed : eveningFed;
+      if (!isAlreadyFed && feedCategory !== 'all') {
+        toggleFeedingLog(feedCategory as any, mealTimeSlot);
+      }
+
+      setConsumedToday(true);
+      setTimeout(() => setConsumedToday(false), 3000);
+      setFeedError(false);
+    } else {
+      setFeedError(true);
+      setTimeout(() => setFeedError(false), 5000);
+    }
   };
 
   const handleAddAnimal = () => {
@@ -61,31 +84,70 @@ export const Livestock = () => {
   const fatteningAnimals = state.livestock.filter(l => l.purpose === 'fattening');
 
   return (
-    <div className="space-y-6">
-      {/* Feed Section - Keep existing logic */}
-      <div className="bg-white/40 backdrop-blur-md p-5 rounded-2xl border border-white/20 shadow-xl shadow-green-900/5">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-4 gap-3">
+    <div className="space-y-8">
+      {/* Feed Section */}
+      <section className="space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-1">
           <h3 className="text-xl font-black text-gray-800 flex items-center shrink-0">
             <Utensils className="w-6 h-6 ml-2 text-green-600" />
             التغذية الذكية
           </h3>
-          <select 
-            value={feedPurpose}
-            onChange={(e) => setFeedPurpose(e.target.value as any)}
-            className="text-xs font-bold p-2 bg-white/60 border border-green-200 rounded-lg text-green-800 focus:ring-1 focus:ring-green-500 outline-none"
-          >
-            <option value="all">كامل القطيع</option>
-            <option value="milking">قسم الحلاب فقط</option>
-            <option value="fattening">قسم التسمين فقط</option>
-          </select>
+          <div className="flex gap-2 w-full sm:w-auto">
+            <select 
+              value={feedCategory}
+              onChange={(e) => setFeedCategory(e.target.value as any)}
+              className="flex-1 sm:flex-none text-[10px] font-bold p-1.5 bg-gray-50 border border-green-200 rounded-lg text-green-800 outline-none"
+            >
+              <option value="all">الكل</option>
+              <option value="cattle">المواشي</option>
+              <option value="small">الأغنام</option>
+            </select>
+            <select 
+              value={feedPurpose}
+              onChange={(e) => setFeedPurpose(e.target.value as any)}
+              className="flex-1 sm:flex-none text-[10px] font-bold p-1.5 bg-gray-50 border border-green-200 rounded-lg text-green-800 outline-none"
+            >
+              <option value="all">كامل الغرض</option>
+              <option value="milking">حلاب</option>
+              <option value="fattening">تسمين</option>
+            </select>
+          </div>
         </div>
-        <p className="text-sm text-gray-600 mb-4 leading-relaxed font-medium">
-          قم بإلغاء تفعيل أي صنف غير متوفر اليوم، وسيقوم المساعد بإعادة حساب الكميات وتوزيعها على الأصناف المتاحة.
-        </p>
 
-        <div className="space-y-3 mb-5">
+        {/* Feeding Tracker - Morning/Evening */}
+        {feedCategory !== 'all' && (
+          <div className="space-y-1.5 mb-2 px-1">
+            <label className="text-[10px] text-gray-500 mr-2 font-black">سجل الوجبة:</label>
+            <div className="grid grid-cols-2 gap-3">
+              <button
+                onClick={() => setMealTimeSlot('morning')}
+                className={`flex items-center justify-center gap-2 p-3 rounded-xl text-[10px] font-black transition-all ${
+                  mealTimeSlot === 'morning' 
+                    ? 'bg-amber-50 text-amber-800 border-2 border-amber-400 shadow-sm' 
+                    : 'bg-gray-50 text-gray-400 border border-gray-100'
+                }`}
+              >
+                {morningFed && <CheckCircle2 className="w-4 h-4 text-green-600" />}
+                وجبة الصباح
+              </button>
+              <button
+                onClick={() => setMealTimeSlot('evening')}
+                className={`flex items-center justify-center gap-2 p-3 rounded-xl text-[10px] font-black transition-all ${
+                  mealTimeSlot === 'evening' 
+                    ? 'bg-amber-50 text-amber-800 border-2 border-amber-400 shadow-sm' 
+                    : 'bg-gray-50 text-gray-400 border border-gray-100'
+                }`}
+              >
+                {eveningFed && <CheckCircle2 className="w-4 h-4 text-green-600" />}
+                وجبة المساء
+              </button>
+            </div>
+          </div>
+        )}
+
+        <div className="space-y-2">
           {/* Alfalfa */}
-          <div className="flex items-center justify-between p-3 bg-white/60 rounded-xl border border-white/40 shadow-sm">
+          <div className="flex items-center justify-between p-4 bg-gray-50/50 rounded-2xl border border-gray-100">
             <div className="flex items-center gap-3">
               <button
                 onClick={() => setActiveFeeds(prev => ({ ...prev, alfalfa: !prev.alfalfa }))}
@@ -93,15 +155,15 @@ export const Livestock = () => {
               >
                 <div className="w-4 h-4 bg-white rounded-full shadow-sm" />
               </button>
-              <span className={`font-black text-base ${activeFeeds.alfalfa ? 'text-gray-800' : 'text-gray-400 line-through'}`}>برسيم أخضر</span>
+              <span className={`font-black text-sm ${activeFeeds.alfalfa ? 'text-gray-800' : 'text-gray-400 line-through'}`}>برسيم أخضر</span>
             </div>
-            <span className={`font-black text-lg ${activeFeeds.alfalfa ? 'text-green-700' : 'text-gray-400'}`}>
+            <span className={`font-black text-base ${activeFeeds.alfalfa ? 'text-green-700' : 'text-gray-400'}`}>
               {feedAmounts.alfalfa.toFixed(1)} كجم
             </span>
           </div>
 
           {/* Silage */}
-          <div className="flex items-center justify-between p-3 bg-white/60 rounded-xl border border-white/40 shadow-sm">
+          <div className="flex items-center justify-between p-4 bg-gray-50/50 rounded-2xl border border-gray-100">
             <div className="flex items-center gap-3">
               <button
                 onClick={() => setActiveFeeds(prev => ({ ...prev, silage: !prev.silage }))}
@@ -109,15 +171,15 @@ export const Livestock = () => {
               >
                 <div className="w-4 h-4 bg-white rounded-full shadow-sm" />
               </button>
-              <span className={`font-black text-base ${activeFeeds.silage ? 'text-gray-800' : 'text-gray-400 line-through'}`}>سيلاج ذرة</span>
+              <span className={`font-black text-sm ${activeFeeds.silage ? 'text-gray-800' : 'text-gray-400 line-through'}`}>سيلاج ذرة</span>
             </div>
-            <span className={`font-black text-lg ${activeFeeds.silage ? 'text-amber-700' : 'text-gray-400'}`}>
+            <span className={`font-black text-base ${activeFeeds.silage ? 'text-amber-700' : 'text-gray-400'}`}>
               {feedAmounts.silage.toFixed(1)} كجم
             </span>
           </div>
 
           {/* Concentrate */}
-          <div className="flex items-center justify-between p-3 bg-white/60 rounded-xl border border-white/40 shadow-sm">
+          <div className="flex items-center justify-between p-4 bg-gray-50/50 rounded-2xl border border-gray-100">
             <div className="flex items-center gap-3">
               <button
                 onClick={() => setActiveFeeds(prev => ({ ...prev, concentrate: !prev.concentrate }))}
@@ -125,15 +187,15 @@ export const Livestock = () => {
               >
                 <div className="w-4 h-4 bg-white rounded-full shadow-sm" />
               </button>
-              <span className={`font-black text-base ${activeFeeds.concentrate ? 'text-gray-800' : 'text-gray-400 line-through'}`}>علف مركز</span>
+              <span className={`font-black text-sm ${activeFeeds.concentrate ? 'text-gray-800' : 'text-gray-400 line-through'}`}>علف مركز</span>
             </div>
-            <span className={`font-black text-lg ${activeFeeds.concentrate ? 'text-blue-700' : 'text-gray-400'}`}>
+            <span className={`font-black text-base ${activeFeeds.concentrate ? 'text-blue-700' : 'text-gray-400'}`}>
               {feedAmounts.concentrate.toFixed(1)} كجم
             </span>
           </div>
 
           {/* Straw */}
-          <div className="flex items-center justify-between p-3 bg-white/60 rounded-xl border border-white/40 shadow-sm">
+          <div className="flex items-center justify-between p-4 bg-gray-50/50 rounded-2xl border border-gray-100">
             <div className="flex items-center gap-3">
               <button
                 onClick={() => setActiveFeeds(prev => ({ ...prev, straw: !prev.straw }))}
@@ -141,9 +203,9 @@ export const Livestock = () => {
               >
                 <div className="w-4 h-4 bg-white rounded-full shadow-sm" />
               </button>
-              <span className={`font-black text-base ${activeFeeds.straw ? 'text-gray-800' : 'text-gray-400 line-through'}`}>تبن قمح</span>
+              <span className={`font-black text-sm ${activeFeeds.straw ? 'text-gray-800' : 'text-gray-400 line-through'}`}>تبن قمح</span>
             </div>
-            <span className={`font-black text-lg ${activeFeeds.straw ? 'text-orange-700' : 'text-gray-400'}`}>
+            <span className={`font-black text-base ${activeFeeds.straw ? 'text-orange-700' : 'text-gray-400'}`}>
               {feedAmounts.straw.toFixed(1)} كجم
             </span>
           </div>
@@ -152,47 +214,74 @@ export const Livestock = () => {
         <button
           onClick={handleConsume}
           disabled={consumedToday || Object.values(activeFeeds).every(v => !v)}
-          className={`w-full flex items-center justify-center gap-2 px-4 py-3.5 rounded-xl text-base font-black transition-all active:scale-95 ${
+          className={`w-full flex items-center justify-center gap-2 px-4 py-4 rounded-2xl text-base font-black transition-all active:scale-95 shadow-sm ${
             consumedToday 
-              ? 'bg-green-100 text-green-700 border border-green-200' 
+              ? 'bg-green-50 text-green-600 border border-green-100' 
               : Object.values(activeFeeds).every(v => !v)
-                ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                : 'bg-green-600 text-white shadow-md shadow-green-600/20 hover:bg-green-700'
+                ? 'bg-gray-100 text-gray-400 cursor-not-allowed border border-gray-200'
+                : 'bg-green-600 text-white shadow-lg shadow-green-600/20 hover:bg-green-700'
           }`}
         >
           {consumedToday ? (
             <>
-              <CheckCircle2 className="w-6 h-6" />
+              <CheckCircle2 className="w-5 h-5" />
               تم الحفظ وخصم الكميات
             </>
           ) : (
             'اعتماد وخصم كمية اليوم'
           )}
         </button>
-      </div>
 
-      <div className="bg-white/40 backdrop-blur-md p-5 rounded-2xl border border-white/20 shadow-xl shadow-blue-900/5">
-        <div className="flex items-center justify-between mb-4">
+        {feedError && (
+          <div className="p-4 bg-red-50 text-red-700 border border-red-200 rounded-xl text-sm font-black text-center animate-in fade-in slide-in-from-bottom-2">
+            تم إيقاف الخصم! لا توجد كمية كافية في المخزن من بعض الأعلاف المحددة.
+          </div>
+        )}
+      </section>
+      
+      <div className="h-px bg-emerald-300 mx-2" />
+
+      <section className="space-y-4 pt-4">
+        <div className="flex items-center justify-between px-1">
           <h3 className="text-xl font-black text-gray-800 flex items-center">
             <Beef className="w-6 h-6 ml-2 text-rose-600" />
             إدارة القطيع
           </h3>
-          <button 
-            onClick={() => setShowAddForm(!showAddForm)}
-            className="p-2.5 bg-rose-500 text-white rounded-full shadow-lg active:scale-95 transition-all"
-          >
-            <Plus className="w-6 h-6" />
-          </button>
+          <div className="flex gap-2">
+            <button 
+              onClick={() => {
+                startVetProgram('all');
+                setVetAdded(true);
+                setTimeout(() => setVetAdded(false), 3000);
+              }}
+              className="p-2.5 bg-indigo-50 text-indigo-600 rounded-full shadow-sm border border-indigo-100 active:scale-95 transition-all hover:bg-indigo-100"
+              title="تفعيل برنامج التحصينات البيطرية"
+            >
+              <Syringe className="w-6 h-6" />
+            </button>
+            <button 
+              onClick={() => setShowAddForm(!showAddForm)}
+              className="p-2.5 bg-rose-500 text-white rounded-full shadow-lg active:scale-95 transition-all"
+            >
+              <Plus className="w-6 h-6" />
+            </button>
+          </div>
         </div>
 
+        {vetAdded && (
+          <div className="p-3 bg-indigo-50 text-indigo-700 border border-indigo-200 rounded-xl text-sm font-black text-center animate-in fade-in zoom-in-95">
+            تم إضافة جدول التحصينات للقطيع في قسم المهام!
+          </div>
+        )}
+
         {showAddForm && (
-          <div className="mb-6 p-5 bg-white/80 rounded-2xl border border-rose-100 space-y-5 animate-in slide-in-from-top duration-300">
+          <div className="p-5 bg-gray-50/80 rounded-2xl border border-rose-100/50 space-y-5 animate-in slide-in-from-top duration-300">
             <h4 className="font-black text-gray-800 text-base">إضافة حيوانات جديدة</h4>
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1">
-                <label className="text-[10px] text-gray-500 mr-2">النوع</label>
+                <label className="text-[10px] text-gray-500 mr-2 font-bold">النوع</label>
                 <select 
-                  className="w-full p-2 bg-gray-50 border border-gray-200 rounded-lg text-sm"
+                  className="w-full p-3 bg-white border border-gray-200 rounded-xl text-sm font-bold"
                   value={newAnimal.type}
                   onChange={e => setNewAnimal({...newAnimal, type: e.target.value as LivestockType})}
                 >
@@ -203,42 +292,42 @@ export const Livestock = () => {
                 </select>
               </div>
               <div className="space-y-1">
-                <label className="text-[10px] text-gray-500 mr-2">التصنيف</label>
+                <label className="text-[10px] text-gray-500 mr-2 font-bold">التصنيف</label>
                 <select 
-                  className="w-full p-2 bg-gray-50 border border-gray-200 rounded-lg text-sm"
+                  className="w-full p-3 bg-white border border-gray-200 rounded-xl text-sm font-bold"
                   value={newAnimal.purpose}
                   onChange={e => setNewAnimal({...newAnimal, purpose: e.target.value as LivestockPurpose})}
                 >
-                  <option value="milking">حلاب (إنتاج لبن)</option>
-                  <option value="fattening">تسمين (إنتاج لحم)</option>
+                  <option value="milking">حلاب</option>
+                  <option value="fattening">تسمين</option>
                 </select>
               </div>
             </div>
             <div className="space-y-1">
-              <label className="text-[10px] text-gray-500 mr-2">الاسم (مثلاً: عجول تسمين 2024)</label>
+              <label className="text-[10px] text-gray-500 mr-2 font-bold">الاسم التعريفي</label>
               <input 
                 type="text"
                 placeholder="اسم للتعريف"
-                className="w-full p-2 bg-gray-50 border border-gray-200 rounded-lg text-sm"
+                className="w-full p-3 bg-white border border-gray-200 rounded-xl text-sm font-bold"
                 value={newAnimal.nameAr}
                 onChange={e => setNewAnimal({...newAnimal, nameAr: e.target.value})}
               />
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1">
-                <label className="text-[10px] text-gray-500 mr-2">العدد</label>
+                <label className="text-[10px] text-gray-500 mr-2 font-bold">العدد</label>
                 <input 
                   type="number"
-                  className="w-full p-2 bg-gray-50 border border-gray-200 rounded-lg text-sm"
+                  className="w-full p-3 bg-white border border-gray-200 rounded-xl text-sm font-bold"
                   value={newAnimal.count}
                   onChange={e => setNewAnimal({...newAnimal, count: parseInt(e.target.value) || 0})}
                 />
               </div>
               <div className="space-y-1">
-                <label className="text-[10px] text-gray-500 mr-2">متوسط الوزن (كجم)</label>
+                <label className="text-[10px] text-gray-500 mr-2 font-bold">الوزن (كجم)</label>
                 <input 
                   type="number"
-                  className="w-full p-2 bg-gray-50 border border-gray-200 rounded-lg text-sm"
+                  className="w-full p-3 bg-white border border-gray-200 rounded-xl text-sm font-bold"
                   value={newAnimal.weight}
                   onChange={e => setNewAnimal({...newAnimal, weight: parseInt(e.target.value) || 0})}
                 />
@@ -246,46 +335,52 @@ export const Livestock = () => {
             </div>
             <button 
               onClick={handleAddAnimal}
-              className="w-full py-2 bg-rose-600 text-white rounded-xl font-bold text-sm shadow-md hover:bg-rose-700 transition"
+              className="w-full py-3.5 bg-rose-600 text-white rounded-xl font-black text-sm shadow-md hover:bg-rose-700 transition"
             >
               إضافة للقطيع
             </button>
           </div>
         )}
         
-        <div className="space-y-6">
+        <div className="space-y-8">
           {/* Milking Section */}
           {milkingAnimals.length > 0 && (
-            <div className="space-y-3">
-              <div className="flex items-center gap-2 px-1">
-                <Milk className="w-4 h-4 text-blue-500" />
+            <div className="space-y-4">
+              <div className="flex items-center gap-2 px-1 border-r-4 border-blue-400 pr-2">
+                <Milk className="w-5 h-5 text-blue-500" />
                 <h4 className="text-sm font-black text-gray-700">قسم الحلاب</h4>
               </div>
-              {milkingAnimals.map(animal => (
-                <AnimalCard key={animal.id} animal={animal} updateLivestockCount={updateLivestockCount} deleteLivestock={deleteLivestock} />
-              ))}
+              <div className="grid gap-4">
+                {milkingAnimals.map(animal => (
+                  <AnimalCard key={animal.id} animal={animal} updateLivestockCount={updateLivestockCount} deleteLivestock={deleteLivestock} />
+                ))}
+              </div>
             </div>
           )}
 
           {/* Fattening Section */}
           {fatteningAnimals.length > 0 && (
-            <div className="space-y-3">
-              <div className="flex items-center gap-2 px-1">
-                <Scale className="w-4 h-4 text-orange-500" />
+            <div className="space-y-4">
+              <div className="flex items-center gap-2 px-1 border-r-4 border-orange-400 pr-2">
+                <Scale className="w-5 h-5 text-orange-500" />
                 <h4 className="text-sm font-black text-gray-700">قسم التسمين</h4>
               </div>
-              {fatteningAnimals.map(animal => (
-                <AnimalCard key={animal.id} animal={animal} updateLivestockCount={updateLivestockCount} deleteLivestock={deleteLivestock} />
-              ))}
+              <div className="grid gap-4">
+                {fatteningAnimals.map(animal => (
+                  <AnimalCard key={animal.id} animal={animal} updateLivestockCount={updateLivestockCount} deleteLivestock={deleteLivestock} />
+                ))}
+              </div>
             </div>
           )}
         </div>
-      </div>
+      </section>
       
-      <div className="bg-white/40 backdrop-blur-md p-5 rounded-2xl border border-white/20 shadow-lg shadow-amber-900/5">
-        <div className="flex items-center justify-between mb-2">
-          <label className="block text-sm font-medium text-gray-700">حساب العجز لفترة (أيام)</label>
-          <span className="font-bold text-amber-700 bg-amber-100 px-2 py-0.5 rounded-lg text-sm">{forecastDays} يوم</span>
+      <div className="h-px bg-emerald-300 mx-2" />
+      
+      <section className="pt-4">
+        <div className="flex items-center justify-between mb-2 px-1">
+          <label className="block text-sm font-black text-gray-700">حساب العجز لفترة</label>
+          <span className="font-black text-amber-600 bg-amber-50 px-3 py-1 rounded-xl text-xs">{forecastDays} يوم</span>
         </div>
         <input 
           type="range" 
@@ -293,13 +388,13 @@ export const Livestock = () => {
           max="90" 
           value={forecastDays} 
           onChange={(e) => setForecastDays(parseInt(e.target.value))}
-          className="w-full accent-amber-600 mb-4"
+          className="w-full h-1.5 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-amber-500 transition-all mb-4"
         />
-        <div className="bg-white/60 rounded-xl p-3 border border-white/40 flex justify-between items-center">
-          <span className="text-sm font-bold text-gray-700">العجز المتوقع:</span>
-          <span className="text-xl font-black text-red-600">{parseFloat(deficit.toFixed(1))} <span className="text-sm font-normal">كجم</span></span>
+        <div className="bg-amber-50/50 rounded-2xl p-4 border border-amber-100 flex justify-between items-center shadow-sm">
+          <span className="text-xs font-black text-gray-600">العجز المتوقع:</span>
+          <span className="text-2xl font-black text-red-500">{parseFloat(deficit.toFixed(1))} <span className="text-sm font-normal">كجم</span></span>
         </div>
-      </div>
+      </section>
     </div>
   );
 };

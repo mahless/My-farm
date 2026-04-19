@@ -75,8 +75,8 @@ export const Dashboard = () => {
       </header>
 
       {/* Main Content */}
-      <main ref={mainRef} className="flex-1 overflow-y-auto px-4 py-6 pb-24 hide-scrollbar">
-        <div className="max-w-md mx-auto h-full">
+      <main ref={mainRef} className="flex-1 overflow-y-auto px-3 py-4 pb-24 hide-scrollbar">
+        <div className="max-w-md mx-auto bg-white/40 backdrop-blur-xl p-5 rounded-[2.5rem] border border-white/40 shadow-2xl shadow-green-900/10 min-h-full">
           {activeTab === 'home' && <Home onNavigate={setActiveTab} />}
           {activeTab === 'tasks' && <DailyTasks />}
           {activeTab === 'crops' && <Crops />}

@@ -1,34 +1,32 @@
 import { CropBestPractice } from '../types';
 
 /**
- * البيانات العلمية المعتمدة للري والتسميد في التربة الطينية السمراء
- * المصدر: مركز البحوث الزراعية (ARC) - مصر
+ * البيانات العلمية المعتمدة للري والتسميد في التربة الطينية جيدة الصرف (الدلتا)
+ * المصدر: نشرات قطاع الإرشاد الزراعي - وزارة الزراعة المصرية
  */
 export const AGRI_REFERENCE: CropBestPractice[] = [
   {
     cropType: 'wheat',
     nameAr: 'القمح',
     milestones: [
-      { id: 'w_1', title: 'Prepare & Base Fert', titleAr: 'تجهيز الأرض وسماد أساس', daysAfterSowing: 0, type: 'fertilization' },
-      { id: 'w_2', title: 'Mohaya Irrigation', titleAr: 'رية المحاياة (تنشيط)', daysAfterSowing: 21, type: 'irrigation' },
-      { id: 'w_3', title: 'First Fert (Nitrogen)', titleAr: 'الدفعة الأولى سماد (آزوت)', daysAfterSowing: 25, type: 'fertilization' },
-      { id: 'w_4', title: 'Second Irrigation', titleAr: 'الرية الثانية', daysAfterSowing: 45, type: 'irrigation' },
-      { id: 'w_5', title: 'Second Fert', titleAr: 'الدفعة الثانية سماد', daysAfterSowing: 50, type: 'fertilization' },
-      { id: 'w_6', title: 'Third Irrigation', titleAr: 'الرية الثالثة (طرد سنابل)', daysAfterSowing: 75, type: 'irrigation' },
-      { id: 'w_7', title: 'Fourth Irrigation', titleAr: 'الرية الرابعة (امتلاء حبوب)', daysAfterSowing: 105, type: 'irrigation' },
-      { id: 'w_8', title: 'Harvest', titleAr: 'الحصاد', daysAfterSowing: 155, type: 'harvest' }
+      { id: 'w_1', title: 'Prepare & Base Fert', titleAr: 'تجهيز الأرض (الزراعة: منتصف نوفمبر)', daysAfterSowing: 0, type: 'fertilization', fertilizerInfo: { type: 'سماد بلدي + سوبر فوسفات', amountPerFeddanKg: 150 } },
+      { id: 'w_2', title: 'Mohaya Irrigation & Fert', titleAr: 'الرية الأولى (المحاياة) وتفريع', daysAfterSowing: 25, type: 'irrigation', fertilizerInfo: { type: 'نترات نشادر (الدفعة الأولى)', amountPerFeddanKg: 100 } },
+      { id: 'w_3', title: 'Second Irrigation & Fert', titleAr: 'الرية الثانية (طرد السنابل)', daysAfterSowing: 55, type: 'irrigation', fertilizerInfo: { type: 'نترات نشادر (الدفعة الثانية)', amountPerFeddanKg: 100 } },
+      { id: 'w_4', title: 'Third Irrigation', titleAr: 'الرية الثالثة', daysAfterSowing: 85, type: 'irrigation' },
+      { id: 'w_5', title: 'Fourth Irrigation', titleAr: 'الرية الرابعة (فترة الامتلاء)', daysAfterSowing: 115, type: 'irrigation' },
+      { id: 'w_6', title: 'Harvest', titleAr: 'الحصاد', daysAfterSowing: 160, type: 'harvest' }
     ]
   },
   {
     cropType: 'corn',
     nameAr: 'الذرة الشامية',
     milestones: [
-      { id: 'c_1', title: 'Sowing & Mohaya', titleAr: 'زراعة ورية المحاياة', daysAfterSowing: 0, type: 'irrigation' },
-      { id: 'c_2', title: 'Thinning & First Fert', titleAr: 'خف وعزيق وسماد أول', daysAfterSowing: 21, type: 'fertilization' },
-      { id: 'c_3', title: 'Second Irrigation', titleAr: 'الرية الثانية', daysAfterSowing: 35, type: 'irrigation' },
-      { id: 'c_4', title: 'Second Fert & Third Irrig', titleAr: 'سماد ثاني ورية ثالثة', daysAfterSowing: 50, type: 'irrigation' },
+      { id: 'c_1', title: 'Sowing', titleAr: 'زراعة ورية الزراعة (مايو/يونيو)', daysAfterSowing: 0, type: 'irrigation', fertilizerInfo: { type: 'سوبر فوسفات', amountPerFeddanKg: 200 } },
+      { id: 'c_2', title: 'Thinning & First Fert', titleAr: 'الخف ورية المحاياة', daysAfterSowing: 21, type: 'fertilization', fertilizerInfo: { type: 'يوريا (الدفعة الأولى)', amountPerFeddanKg: 130 } },
+      { id: 'c_3', title: 'Second Irrigation & Fert', titleAr: 'الرية الثانية', daysAfterSowing: 35, type: 'irrigation', fertilizerInfo: { type: 'يوريا (الدفعة الثانية)', amountPerFeddanKg: 130 } },
+      { id: 'c_4', title: 'Third Irrigation', titleAr: 'الرية الثالثة', daysAfterSowing: 50, type: 'irrigation' },
       { id: 'c_5', title: 'Fourth Irrigation', titleAr: 'الرية الرابعة (تزهير)', daysAfterSowing: 65, type: 'irrigation' },
-      { id: 'c_6', title: 'Fifth Irrigation', titleAr: 'الرية الخامسة', daysAfterSowing: 80, type: 'irrigation' },
+      { id: 'c_6', title: 'Fifth Irrigation', titleAr: 'الرية الخامسة (امتلاء الحبوب)', daysAfterSowing: 80, type: 'irrigation' },
       { id: 'c_7', title: 'Harvest', titleAr: 'الحصاد', daysAfterSowing: 110, type: 'harvest' }
     ]
   },
@@ -36,12 +34,12 @@ export const AGRI_REFERENCE: CropBestPractice[] = [
     cropType: 'potato',
     nameAr: 'البطاطس',
     milestones: [
-      { id: 'p_1', title: 'Sowing & First Irrig', titleAr: 'زراعة ورية أولى', daysAfterSowing: 0, type: 'irrigation' },
-      { id: 'p_2', title: 'Second Irrig & Nitrogen', titleAr: 'رية ثانية وسماد آزوت', daysAfterSowing: 20, type: 'irrigation' },
-      { id: 'p_3', title: 'Hoeing & Potassium', titleAr: 'عزيق وسماد بوتاسيوم', daysAfterSowing: 40, type: 'fertilization' },
-      { id: 'p_4', title: 'Third Irrigation', titleAr: 'رية ثالثة', daysAfterSowing: 55, type: 'irrigation' },
-      { id: 'p_5', title: 'Fourth Irrig & Hilling', titleAr: 'رية رابعة وتغطية درنات', daysAfterSowing: 75, type: 'irrigation' },
-      { id: 'p_6', title: 'Stop Irrigation', titleAr: 'توقف الري (نضج)', daysAfterSowing: 100, type: 'irrigation' },
+      { id: 'p_1', title: 'Sowing & Base Fert', titleAr: 'الزراعة (عروة صيفي/شتوي)', daysAfterSowing: 0, type: 'fertilization', fertilizerInfo: { type: 'سماد بلدي + سوبر فوسفات', amountPerFeddanKg: 200 } },
+      { id: 'p_2', title: 'Mohaya Irrig & Nitrogen', titleAr: 'رية المحاياة وتسميد نتروجين', daysAfterSowing: 21, type: 'irrigation', fertilizerInfo: { type: 'نترات نشادر', amountPerFeddanKg: 100 } },
+      { id: 'p_3', title: 'Hoeing & Potassium', titleAr: 'عزيق وتسميد بوتاسيوم', daysAfterSowing: 35, type: 'fertilization', fertilizerInfo: { type: 'سلفات بوتاسيوم', amountPerFeddanKg: 50 } },
+      { id: 'p_4', title: 'Third Irrigation & Nitrogen', titleAr: 'رية ثالثة', daysAfterSowing: 45, type: 'irrigation', fertilizerInfo: { type: 'نترات نشادر', amountPerFeddanKg: 100 } },
+      { id: 'p_5', title: 'Fourth Irrig & Hilling', titleAr: 'رية رابعة وتغطية (صب الدرنات)', daysAfterSowing: 60, type: 'irrigation', fertilizerInfo: { type: 'سلفات بوتاسيوم', amountPerFeddanKg: 50 } },
+      { id: 'p_6', title: 'Stop Irrigation', titleAr: 'توقف الري (للنضج الكامل)', daysAfterSowing: 100, type: 'irrigation' },
       { id: 'p_7', title: 'Harvest', titleAr: 'الحصاد', daysAfterSowing: 115, type: 'harvest' }
     ]
   },
@@ -49,14 +47,26 @@ export const AGRI_REFERENCE: CropBestPractice[] = [
     cropType: 'alfalfa',
     nameAr: 'البرسيم المسقاوي',
     milestones: [
-      { id: 'a_1', title: 'Sowing & Phos Fert', titleAr: 'زراعة وسماد فوسفات', daysAfterSowing: 0, type: 'fertilization' },
-      { id: 'a_2', title: 'Mohaya Irrigation', titleAr: 'رية المحاياة', daysAfterSowing: 10, type: 'irrigation' },
-      { id: 'a_3', title: 'First Cut', titleAr: 'الحشة الأولى', daysAfterSowing: 45, type: 'harvest' },
-      { id: 'a_4', title: 'Post-Cut Irrigation', titleAr: 'ري بعد الحش والسماد', daysAfterSowing: 50, type: 'irrigation' },
-      { id: 'a_5', title: 'Second Cut', titleAr: 'الحشة الثانية', daysAfterSowing: 75, type: 'harvest' },
-      { id: 'a_6', title: 'Post-Second Cut Irrig', titleAr: 'ري بعد الحشة الثانية', daysAfterSowing: 80, type: 'irrigation' },
-      { id: 'a_7', title: 'Third Cut', titleAr: 'الحشة الثالثة', daysAfterSowing: 105, type: 'harvest' },
-      { id: 'a_8', title: 'Post-Third Cut Irrig', titleAr: 'ري بعد الحشة الثالثة', daysAfterSowing: 110, type: 'irrigation' }
+      { id: 'a_1', title: 'Sowing & Phos Fert', titleAr: 'الزراعة والتجهيز (أكتوبر/نوفمبر)', daysAfterSowing: 0, type: 'fertilization', fertilizerInfo: { type: 'سوبر فوسفات ناعم', amountPerFeddanKg: 150 } },
+      { id: 'a_2', title: 'Mohaya Irrigation', titleAr: 'رية المحاياة (تنشيطية العقد الجذرية)', daysAfterSowing: 15, type: 'irrigation', fertilizerInfo: { type: 'يوريا (تنشيطي)', amountPerFeddanKg: 20 } },
+      { id: 'a_3', title: 'First Cut', titleAr: 'الحشة الأولى', daysAfterSowing: 60, type: 'harvest' },
+      { id: 'a_4', title: 'Post-Cut Irrigation', titleAr: 'ري بعد الحشة الأولى', daysAfterSowing: 65, type: 'irrigation' },
+      { id: 'a_5', title: 'Second Cut', titleAr: 'الحشة الثانية', daysAfterSowing: 100, type: 'harvest' },
+      { id: 'a_6', title: 'Post-Second Cut Irrig', titleAr: 'ري بعد الحشة الثانية', daysAfterSowing: 105, type: 'irrigation' },
+      { id: 'a_7', title: 'Third Cut', titleAr: 'الحشة الثالثة', daysAfterSowing: 140, type: 'harvest' },
+      { id: 'a_8', title: 'Final Cut/Seed', titleAr: 'الحشة الأخيره/ترك للرباية', daysAfterSowing: 175, type: 'harvest' }
+    ]
+  },
+  {
+    cropType: 'beans',
+    nameAr: 'الفاصوليا البيضاء',
+    milestones: [
+      { id: 'b_1', title: 'Sowing & Base Fert', titleAr: 'زراعة ورية الزراعة', daysAfterSowing: 0, type: 'fertilization', fertilizerInfo: { type: 'تلقيح بكتيري + سوبر فوسفات', amountPerFeddanKg: 150 } },
+      { id: 'b_2', title: 'Mohaya Irrigation', titleAr: 'رية المحاياة (تنشيط)', daysAfterSowing: 21, type: 'irrigation', fertilizerInfo: { type: 'نترات نشادر', amountPerFeddanKg: 50 } },
+      { id: 'b_3', title: 'Second Irrigation', titleAr: 'الرية الثانية (بداية التزهير)', daysAfterSowing: 35, type: 'irrigation' },
+      { id: 'b_4', title: 'Third Irrigation', titleAr: 'الرية الثالثة (تكون العقد)', daysAfterSowing: 50, type: 'irrigation', fertilizerInfo: { type: 'سلفات بوتاسيوم', amountPerFeddanKg: 24 } },
+      { id: 'b_5', title: 'Fourth Irrigation', titleAr: 'الرية الرابعة', daysAfterSowing: 65, type: 'irrigation' },
+      { id: 'b_6', title: 'Harvest', titleAr: 'الحصاد وتقليع الفاصوليا', daysAfterSowing: 90, type: 'harvest' }
     ]
   }
 ];

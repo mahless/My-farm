@@ -109,6 +109,8 @@ export const FarmerProfile: React.FC<FarmerProfileProps> = ({ onClose }) => {
                 ))}
               </div>
 
+              <div className="h-px bg-emerald-300 mx-2" />
+
               {/* Diseases List */}
               <div className="space-y-5">
                 <h3 className="font-black text-gray-800 flex items-center gap-2 text-lg">
@@ -165,6 +167,8 @@ export const FarmerProfile: React.FC<FarmerProfileProps> = ({ onClose }) => {
                     </div>
                   </div>
                 ))}
+
+                <div className="h-px bg-emerald-300 mx-2" />
 
                 {/* Additional Details Section */}
                 {cropDiseases[selectedCrop].additionalDetails && (

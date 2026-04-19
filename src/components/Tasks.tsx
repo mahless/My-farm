@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useFarmContext } from '../context/FarmContext';
 import { format, isToday, isPast, parseISO } from 'date-fns';
 import { ar } from 'date-fns/locale';
-import { CheckCircle, Clock, Calendar, FlaskConical, Tractor } from 'lucide-react';
+import { CheckCircle, Clock, Calendar, FlaskConical, Tractor, Syringe } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { HarvestModal } from './HarvestModal';
 
@@ -25,13 +25,19 @@ export const DailyTasks = () => {
   };
 
   const TaskCard: React.FC<{ task: any, isUrgent: boolean }> = ({ task, isUrgent }) => {
+    const isLivestockTask = !!task.livestockCategory;
     const crop = state.plantedCrops.find(c => c.id === task.plantedCropId);
     const bp = crop ? state.cropBestPractices.find(b => b.cropType === crop.cropType) : null;
-    const cropName = bp ? bp.nameAr : 'محصول غير معروف';
+    const cropName = bp ? bp.nameAr : (isLivestockTask ? '' : 'محصول غير معروف');
+    
+    const tagText = isLivestockTask 
+      ? (task.livestockCategory === 'cattle' ? 'قطيع الماشية' : task.livestockCategory === 'small' ? 'قطيع الأغنام' : 'القطيع كامل')
+      : cropName;
     
     let fertInfo = task.fertilizerInfo;
-    if (!fertInfo && crop && bp) {
-      const milestone = bp.milestones.find(m => m.title === task.title);
+    if (!isLivestockTask && !fertInfo && crop && bp) {
+      const milestoneId = task.id.split('_').pop();
+      const milestone = bp.milestones.find(m => m.id === milestoneId);
       if (milestone?.fertilizerInfo) {
         fertInfo = {
           type: milestone.fertilizerInfo.type,
@@ -41,7 +47,7 @@ export const DailyTasks = () => {
     }
 
     const handleComplete = (taskId: string, type: string, cropId: string) => {
-      if (type === 'harvest') {
+      if (type === 'harvest' && cropId) {
         setHarvestingCropId(cropId);
         completeTask(taskId);
       } else {
@@ -51,74 +57,75 @@ export const DailyTasks = () => {
 
     return (
       <div className={cn(
-        "p-4 rounded-xl mb-3 backdrop-blur-md border border-white/20 shadow-lg shadow-green-900/5 transition-all active:scale-[0.98]",
-        isUrgent ? "bg-red-500/10 border-red-500/30" : "bg-white/40"
+        "p-4 rounded-2xl mb-4 border transition-all active:scale-[0.98] shadow-sm",
+        isUrgent ? "bg-red-50/50 border-red-100" : "bg-gray-50/50 border-gray-100"
       )}>
         <div className="flex justify-between items-start">
-          <div>
-            <div className="flex items-center gap-2 mb-1.5">
-              <span className="text-[10px] font-bold bg-green-100 text-green-800 px-2 py-0.5 rounded-full border border-green-200 flex items-center gap-1">
+          <div className="flex-1">
+            <div className="flex items-center gap-2 mb-2">
+              <span className={cn(
+                "text-[10px] font-black px-2 py-0.5 rounded-lg border flex items-center gap-1 shadow-xs",
+                isLivestockTask ? "bg-rose-50 text-rose-700 border-rose-100" : "bg-white text-green-700 border-green-100"
+              )}>
                 {task.type === 'harvest' && <Tractor className="w-3 h-3" />}
-                {cropName}
+                {task.type === 'vaccination' && <Syringe className="w-3 h-3" />}
+                {tagText}
               </span>
-              {crop && (
-                <span className="text-[10px] text-gray-500">
+              {crop && !isLivestockTask && (
+                <span className="text-[10px] text-gray-400 font-bold">
                   {crop.area} قيراط
                 </span>
               )}
             </div>
-            <h4 className="font-bold text-gray-800">{task.titleAr}</h4>
-            <p className="text-xs text-gray-500 flex items-center mt-1">
-              <Calendar className="w-3 h-3 ml-1" />
-              {format(parseISO(task.dueDate), 'dd MMMM yyyy', { locale: ar })}
-            </p>
-            {task.postponedDays > 0 && (
-              <span className="text-xs text-amber-600 mt-1 block">
-                تم التأجيل {task.postponedDays} يوم
-              </span>
-            )}
-            
-            {fertInfo && (
-              <div className="mt-2 p-2 bg-purple-50/80 border border-purple-100 rounded-lg text-xs w-fit">
-                <div className="flex items-center gap-1 mb-1">
-                  <FlaskConical className="w-3 h-3 text-purple-600" />
-                  <span className="font-bold text-purple-800">توصية التسميد</span>
-                </div>
-                <p className="text-purple-700">النوع: {fertInfo.type}</p>
-                <p className="text-purple-700">الكمية: {fertInfo.amountKg} كجم</p>
-              </div>
-            )}
-          </div>
-          <div className="flex gap-2">
-            <div className="flex flex-col items-center gap-1">
-              <button 
-                onClick={() => handleComplete(task.id, task.type, task.plantedCropId)}
-                className={cn(
-                  "p-2 rounded-full transition shadow-md",
-                  task.type === 'harvest' ? "bg-orange-500 text-white hover:bg-orange-600" : "bg-green-500 text-white hover:bg-green-600"
-                )}
-                title="إتمام المهمة"
-              >
-                <CheckCircle className="w-4 h-4" />
-              </button>
+            <h4 className="font-black text-gray-800 text-lg leading-tight">
+              {task.titleAr}
+              {fertInfo && (
+                <span className="text-indigo-600 mr-1">
+                  {" "}+ {fertInfo.amountKg} كجم {fertInfo.type}
+                </span>
+              )}
+            </h4>
+            <div className="flex items-center mt-2 gap-3">
+              <p className="text-[10px] text-gray-400 font-bold flex items-center">
+                <Calendar className="w-3 h-3 ml-1" />
+                {format(parseISO(task.dueDate), 'dd MMMM yyyy', { locale: ar })}
+              </p>
+              {task.postponedDays > 0 && (
+                <span className="text-[10px] text-amber-600 font-black bg-amber-50 px-1.5 rounded-md">
+                  تم التأجيل {task.postponedDays} يوم
+                </span>
+              )}
             </div>
           </div>
+          
+          <button 
+            onClick={() => handleComplete(task.id, task.type, task.plantedCropId)}
+            className={cn(
+              "w-12 h-12 flex items-center justify-center rounded-2xl transition shadow-lg shrink-0",
+              task.type === 'harvest' ? "bg-orange-500 text-white shadow-orange-500/20" : "bg-green-600 text-white shadow-green-600/20"
+            )}
+          >
+            <CheckCircle className="w-6 h-6" />
+          </button>
         </div>
       
-        <div className="mt-3 pt-3 border-t border-white/20 flex items-center justify-between">
-          <span className="text-xs text-gray-600">تأجيل بسبب الطقس؟</span>
+        <div className="mt-4 pt-4 border-t border-gray-100 flex items-center justify-between">
+          <span className="text-[10px] text-gray-400 font-black">تأجيل لظروف طارئة؟</span>
           <div className="flex items-center gap-2">
-            <input 
-              type="number" 
-              min="1" 
-              max="14"
-              value={postponeDays[task.id] || 1}
-              onChange={(e) => setPostponeDays(prev => ({ ...prev, [task.id]: parseInt(e.target.value) || 1 }))}
-              className="w-12 text-center text-sm rounded-md border-gray-300 bg-white/50"
-            />
+            <div className="flex items-center bg-white border border-gray-200 rounded-lg overflow-hidden h-8">
+              <input 
+                type="number" 
+                min="1" 
+                max="14"
+                value={postponeDays[task.id] || 1}
+                onChange={(e) => setPostponeDays(prev => ({ ...prev, [task.id]: parseInt(e.target.value) || 1 }))}
+                className="w-10 text-center text-xs font-black outline-none"
+              />
+              <span className="px-2 text-[10px] text-gray-400 border-r border-gray-100 font-bold">يوم</span>
+            </div>
             <button 
               onClick={() => handlePostpone(task.id)}
-              className="text-xs px-2 py-1 bg-amber-100 text-amber-800 rounded-md hover:bg-amber-200 transition flex items-center"
+              className="h-8 px-3 bg-amber-100 text-amber-800 rounded-lg hover:bg-amber-200 transition flex items-center text-[10px] font-black"
             >
               <Clock className="w-3 h-3 ml-1" />
               تأجيل
@@ -130,32 +137,41 @@ export const DailyTasks = () => {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-10">
       <section>
-        <h3 className="text-lg font-bold text-gray-800 mb-3 flex items-center">
-          <span className="w-2 h-2 rounded-full bg-red-500 ml-2"></span>
-          مهام اليوم والمتأخرة
-        </h3>
+        <div className="flex items-center gap-2 mb-4 px-1">
+          <div className="w-2 h-6 bg-red-500 rounded-full" />
+          <h3 className="text-xl font-black text-gray-800">عاجل اليوم</h3>
+        </div>
+        
         {todayTasks.length === 0 ? (
-          <div className="p-6 text-center bg-white/30 rounded-xl border border-white/20">
-            <p className="text-gray-500">لا توجد مهام عاجلة اليوم. عمل رائع!</p>
+          <div className="p-10 text-center bg-gray-50/50 rounded-[2rem] border-2 border-dashed border-gray-200">
+            <CheckCircle className="w-10 h-10 text-green-500/20 mx-auto mb-3" />
+            <p className="text-gray-400 font-black text-sm">لا توجد مهام عاجلة. يوم مثمر!</p>
           </div>
         ) : (
-          todayTasks.map(task => <TaskCard key={task.id} task={task} isUrgent={true} />)
+          <div className="space-y-1">
+            {todayTasks.map(task => <TaskCard key={task.id} task={task} isUrgent={true} />)}
+          </div>
         )}
       </section>
 
-      <section>
-        <h3 className="text-lg font-bold text-gray-800 mb-3 flex items-center">
-          <span className="w-2 h-2 rounded-full bg-blue-500 ml-2"></span>
-          المهام القادمة
-        </h3>
+      <div className="h-px bg-emerald-300 mx-2" />
+
+      <section className="pt-6">
+        <div className="flex items-center gap-2 mb-4 px-1">
+          <div className="w-2 h-6 bg-blue-500 rounded-full" />
+          <h3 className="text-xl font-black text-gray-800">الجدول القادم</h3>
+        </div>
+
         {upcomingTasks.length === 0 ? (
-          <div className="p-6 text-center bg-white/30 rounded-xl border border-white/20">
-            <p className="text-gray-500">لا توجد مهام قادمة قريباً.</p>
+          <div className="p-8 text-center bg-gray-50/30 rounded-[2rem] border border-gray-100">
+            <p className="text-gray-400 font-bold text-xs uppercase tracking-widest">لا توجد مهام قريبة</p>
           </div>
         ) : (
-          upcomingTasks.map(task => <TaskCard key={task.id} task={task} isUrgent={false} />)
+          <div className="space-y-1">
+            {upcomingTasks.map(task => <TaskCard key={task.id} task={task} isUrgent={false} />)}
+          </div>
         )}
       </section>
 
